@@ -118,7 +118,7 @@ export default function TryOn() {
   const [photo, setPhoto] = useState(null);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 md:px-6 py-12 flex flex-col justify-center min-h-[80vh]">
+    <div className="mx-auto max-w-7xl px-4 md:px-6 py-4 flex flex-col justify-center min-h-[80vh]">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <ChooseOutfitStep
           onTabChange={() => { }}
