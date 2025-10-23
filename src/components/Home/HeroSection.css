@@ -1,0 +1,58 @@
+.carouselContainer {
+  scroll-snap-type: x mandatory;
+  overflow-x: auto;
+  position: relative;
+  display: flex;
+  width: 100%;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+}
+
+.carouselContainer::-webkit-scrollbar {
+  display: none;
+}
+
+.carouselContainer {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.carouselItem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  flex-shrink: 0;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+}
+
+.carouselButton {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: #e5e5e5;
+  border: 0;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.carouselButton:hover {
+  background-color: #ccc;
+}
+
+.carouselButton:focus {
+  outline: 1px solid #0365A2;
+}
+
+.carouselButton svg {
+  width: 24px;
+  height: 24px;
+  color: #000;
+}
