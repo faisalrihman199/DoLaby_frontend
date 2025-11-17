@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { PiUserCircleLight } from 'react-icons/pi';
 import { IoIosHeartEmpty } from 'react-icons/io';
+import { useAPP } from '../../contexts/AppContext'
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [loggedIn] = useState(false);
+  const { user, logout } = useAPP()
+  const loggedIn = !!user
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -28,30 +30,39 @@ export default function Navbar() {
           <Link to="/" className="text-color-primary font-semibold hover:opacity-90 transition-colors">
             Home
           </Link>
-          <Link to="/wardrobe" className="text-color-primary font-semibold hover:opacity-90 transition-colors">
-            Wardrobe
-          </Link>
-          <Link to="/favorites" className="text-color-primary font-semibold hover:opacity-90 transition-colors">
-            Favorites
-          </Link>
+          {loggedIn && (
+            <>
+              <Link to="/wardrobe" className="text-color-primary font-semibold hover:opacity-90 transition-colors">
+                Wardrobe
+              </Link>
+              <Link to="/favorites" className="text-color-primary font-semibold hover:opacity-90 transition-colors">
+                Favorites
+              </Link>
+            </>
+          )}
 
           {loggedIn ? (
             <div className="flex items-center space-x-4 ml-4">
+              <button className="text-color-primary font-semibold hover:opacity-90 transition-colors" onClick={() => { logout(); navigate('/'); }}>
+                Log out
+              </button>
               <PiUserCircleLight className="cursor-pointer" size={28} />
               <IoIosHeartEmpty className="cursor-pointer" size={28} />
             </div>
-          ) : isRegisterPage ? (
-            <button
-              type="button"
-              className="text-color-primary font-semibold hover:opacity-90 transition-colors"
-              onClick={() => navigate('/login')}
-            >
-              Login
-            </button>
           ) : (
-            <Link to="/signup" className="text-color-primary font-semibold hover:opacity-90 transition-colors">
-              Register
-            </Link>
+            isRegisterPage ? (
+              <button
+                type="button"
+                className="text-color-primary font-semibold hover:opacity-90 transition-colors"
+                onClick={() => navigate('/login')}
+              >
+                Login
+              </button>
+            ) : (
+              <Link to="/signup" className="text-color-primary font-semibold hover:opacity-90 transition-colors">
+                Register
+              </Link>
+            )
           )}
         </div>
       </nav>
@@ -103,12 +114,16 @@ export default function Navbar() {
                 <Link to="/" className="block text-lg text-color-primary font-semibold hover:opacity-90 transition-colors py-2" onClick={() => setIsMobileMenuOpen(false)}>
                   Home
                 </Link>
-                <Link to="/wardrobe" className="block text-lg text-color-primary font-semibold hover:opacity-90 transition-colors py-2" onClick={() => setIsMobileMenuOpen(false)}>
-                  Wardrobe
-                </Link>
-                <Link to="/favorites" className="block text-lg text-color-primary font-semibold hover:opacity-90 transition-colors py-2" onClick={() => setIsMobileMenuOpen(false)}>
-                  Favorites
-                </Link>
+                {loggedIn && (
+                  <>
+                    <Link to="/wardrobe" className="block text-lg text-color-primary font-semibold hover:opacity-90 transition-colors py-2" onClick={() => setIsMobileMenuOpen(false)}>
+                      Wardrobe
+                    </Link>
+                    <Link to="/favorites" className="block text-lg text-color-primary font-semibold hover:opacity-90 transition-colors py-2" onClick={() => setIsMobileMenuOpen(false)}>
+                      Favorites
+                    </Link>
+                  </>
+                )}
 
                 {loggedIn ? (
                   <div className="flex items-center space-x-6 pt-6 border-t border-[#035477]">
@@ -125,14 +140,16 @@ export default function Navbar() {
                       <span className="text-color-primary font-medium">Favorites</span>
                     </div>
                   </div>
-                ) : isRegisterPage ? (
-                  <button className="block text-lg text-color-primary font-semibold hover:opacity-90 transition-colors pt-6 border-t border-[#035477] w-full text-left" onClick={() => { setIsMobileMenuOpen(false); navigate('/login'); }}>
-                    Login
-                  </button>
                 ) : (
-                  <Link to="/signup" className="block text-lg text-color-primary font-semibold hover:opacity-90 transition-colors pt-6 border-t border-[#035477]" onClick={() => setIsMobileMenuOpen(false)}>
-                    Register
-                  </Link>
+                  isRegisterPage ? (
+                    <button className="block text-lg text-color-primary font-semibold hover:opacity-90 transition-colors pt-6 border-t border-[#035477] w-full text-left" onClick={() => { setIsMobileMenuOpen(false); navigate('/login'); }}>
+                      Login
+                    </button>
+                  ) : (
+                    <Link to="/signup" className="block text-lg text-color-primary font-semibold hover:opacity-90 transition-colors pt-6 border-t border-[#035477]" onClick={() => setIsMobileMenuOpen(false)}>
+                      Register
+                    </Link>
+                  )
                 )}
               </div>
             </div>

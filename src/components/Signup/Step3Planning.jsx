@@ -1,6 +1,23 @@
 import React, { useState } from 'react'
 
-const Step5Planning = ({ register, errors, watch, nextStep, prevStep, isFirstStep, isLastStep }) => {
+const Step3Planning = ({ register, errors, watch, nextStep, prevStep, handleSubmit, onStep3Submit, isLoading, error }) => {
+  // Restrict travel date-times to the current month
+  const now = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0)
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 0)
+
+  const toDateTimeLocal = (date) => {
+    const pad = (n) => String(n).padStart(2, '0')
+    const yyyy = date.getFullYear()
+    const mm = pad(date.getMonth() + 1)
+    const dd = pad(date.getDate())
+    const hh = pad(date.getHours())
+    const min = pad(date.getMinutes())
+    return `${yyyy}-${mm}-${dd}T${hh}:${min}`
+  }
+
+  const travelMin = toDateTimeLocal(monthStart)
+  const travelMax = toDateTimeLocal(monthEnd)
   const [selectedDays, setSelectedDays] = useState({
     work: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
     gym: ['Sunday', 'Monday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -18,8 +35,8 @@ const Step5Planning = ({ register, errors, watch, nextStep, prevStep, isFirstSte
   }
 
   const generateCalendar = () => {
-    const year = 2019
-    const month = 0 // January (0-indexed)
+    const year = now.getFullYear()
+    const month = now.getMonth() // Current month (0-indexed)
     const firstDay = new Date(year, month, 1).getDay()
     const daysInMonth = new Date(year, month + 1, 0).getDate()
     
@@ -39,21 +56,35 @@ const Step5Planning = ({ register, errors, watch, nextStep, prevStep, isFirstSte
   }
 
   const calendarDays = generateCalendar()
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+    'July', 'August', 'September', 'October', 'November', 'December']
+  const currentMonthName = monthNames[now.getMonth()]
+
+  const submitHandler = (formData) => {
+    if (onStep3Submit) {
+      onStep3Submit(formData, selectedDays)
+    } else {
+      nextStep()
+    }
+  }
 
   return (
-    <form onSubmit={(e) => {
-      e.preventDefault()
-      nextStep()
-    }} className="space-y-8">
+    <form onSubmit={handleSubmit ? handleSubmit(submitHandler) : (e) => { e.preventDefault(); submitHandler({ workFrom: watch('workFrom'), workTo: watch('workTo'), gymFrom: watch('gymFrom'), gymTo: watch('gymTo'), travelFrom: watch('travelFrom'), travelTo: watch('travelTo') }) }} className="space-y-8">
       
-      <div className="text-center mb-8">
+      {/* Server error message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded">
+          {error}
+        </div>
+      )}
 
+      <div className="text-center mb-8">
         <p className="text-gray-600">Set up your schedule preferences</p>
       </div>
 
       {/* Calendar Section */}
       <div className=" rounded-lg p-6  ">
-        <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">January 2019</h3>
+        <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">{currentMonthName} {now.getFullYear()}</h3>
         
         {/* Calendar Grid */}
         <div className="grid grid-cols-7 gap-1 mb-2">
@@ -203,11 +234,20 @@ const Step5Planning = ({ register, errors, watch, nextStep, prevStep, isFirstSte
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              From:
+              From (current month):
             </label>
             <input
-              {...register('travelFrom', { required: 'Travel start time is required' })}
-              type="time"
+              {...register('travelFrom', { 
+                required: 'Travel start date/time is required',
+                validate: (value) => {
+                  if (!value) return 'Travel start date/time is required'
+                  const d = new Date(value)
+                  return (d >= monthStart && d <= monthEnd) || 'Travel must be within the current month'
+                }
+              })}
+              type="datetime-local"
+              min={travelMin}
+              max={travelMax}
               className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
             />
             {errors.travelFrom && (
@@ -217,11 +257,20 @@ const Step5Planning = ({ register, errors, watch, nextStep, prevStep, isFirstSte
           
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              To:
+              To (current month):
             </label>
             <input
-              {...register('travelTo', { required: 'Travel end time is required' })}
-              type="time"
+              {...register('travelTo', { 
+                required: 'Travel end date/time is required',
+                validate: (value) => {
+                  if (!value) return 'Travel end date/time is required'
+                  const d = new Date(value)
+                  return (d >= monthStart && d <= monthEnd) || 'Travel must be within the current month'
+                }
+              })}
+              type="datetime-local"
+              min={travelMin}
+              max={travelMax}
               className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
             />
             {errors.travelTo && (
@@ -242,9 +291,10 @@ const Step5Planning = ({ register, errors, watch, nextStep, prevStep, isFirstSte
         </button>
         <button
           type="submit"
-          className="px-8 py-3 bg-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-400 transition-colors"
+          disabled={isLoading}
+          className={`px-8 py-3 rounded-lg font-semibold transition-colors ${isLoading ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'}`}
         >
-          Next
+          {isLoading ? 'Processing...' : 'Next'}
         </button>
         <button
           type="button"
@@ -258,4 +308,4 @@ const Step5Planning = ({ register, errors, watch, nextStep, prevStep, isFirstSte
   )
 }
 
-export default Step5Planning
+export default Step3Planning

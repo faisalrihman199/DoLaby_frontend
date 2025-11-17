@@ -4,15 +4,18 @@ import { TopIcon, BottomIcon, ShoesIcon, SelectIcon } from "./icons/Icons";
 /**
  * Props:
  *  onTabChange?: (tab: 'Top'|'Bottom'|'Shoes') => void
- *  onDropItem?:  ({ type: 'Top'|'Bottom'|'Shoes', data: {id, name, src} }) => void
+ *  onDropItem?:  ({ type: 'Top'|'Bottom'|'Shoes', data: {id, name, src}, file?: File }) => void
+ *  onImageUpload?: (file: File, type: string) => Promise<string>
  *  gallery?: { Top: ImgItem[]; Bottom: ImgItem[]; Shoes: ImgItem[] }
  * 
  * ImgItem = { id: string; name: string; src: string }  // src is an image URL (png/jpg/svg/dataURI)
  */
-export default function ChooseOutfitStep({ onTabChange, onDropItem, gallery }) {
+export default function ChooseOutfitStep({ onTabChange, onDropItem, onImageUpload, gallery }) {
   const [tab, setTab] = useState("Top");
   const [hover, setHover] = useState(false);
   const [open, setOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = React.useRef(null);
   const [selected, setSelected] = useState({
     Top: null,
     Bottom: null,
@@ -54,6 +57,45 @@ export default function ChooseOutfitStep({ onTabChange, onDropItem, gallery }) {
     setSelected((s) => ({ ...s, [part]: item }));
     onDropItem?.({ type: part, data: item });
     setOpen(false);
+  };
+
+  // Handle file upload from browse
+  const handleFileUpload = async (files) => {
+    const file = files?.[0];
+    if (!file || !onImageUpload) return;
+
+    try {
+      setUploading(true);
+      const reader = new FileReader();
+      
+      reader.onload = async () => {
+        const preview = reader.result;
+        const tempItem = {
+          id: `${tab.toLowerCase()}-${Date.now()}`,
+          name: file.name,
+          src: preview
+        };
+        
+        // Set preview immediately
+        setSelected((s) => ({ ...s, [tab]: tempItem }));
+        
+        // Notify parent with file for upload
+        onDropItem?.({ type: tab, data: tempItem, file });
+      };
+      
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Error handling file:', err);
+      alert('Failed to process image');
+    } finally {
+      setUploading(false);
+      // Reset the file input so selecting the same file again will fire change
+      try {
+        if (fileInputRef?.current) fileInputRef.current.value = '';
+      } catch (e) {
+        /* ignore */
+      }
+    }
   };
 
   return (
@@ -121,31 +163,76 @@ export default function ChooseOutfitStep({ onTabChange, onDropItem, gallery }) {
         />
       </div>
 
-      {/* Select from wardrobe / Drop zone */}
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className={`flex h-[260px] md:h-[280px] w-full flex-col items-center justify-center rounded-[18px] border-2 border-dashed text-center transition
-        ${hover ? "border-[#3B82F6] bg-[#EAF2FF]" : "border-[#cfe0f2] bg-white/60"}`}
-        onDragOver={onDragOver}
-        onDragLeave={onDragLeave}
-        onDrop={onDrop}
-      >
-        <SelectIcon className="h-[200px] w-[150px] text-[#12396F]" />
-        <p className="mt-2 w-full text-2xl px-4 kantumruy text-blue-900/50">
-          Select from wardrobe or drag it here
-        </p>
-      </button>
+      {/* Select from wardrobe / Drop zone / Upload */}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className={`flex h-[260px] md:h-[280px] w-full flex-col items-center justify-center rounded-[18px] border-2 border-dashed text-center transition
+          ${hover ? "border-[#3B82F6] bg-[#EAF2FF]" : "border-[#cfe0f2] bg-white/60"}
+          ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+          onDrop={onDrop}
+        >
+          {uploading ? (
+            <>
+              <div className="animate-spin rounded-full h-24 w-24 border-b-4 border-blue-900"></div>
+              <p className="mt-4 text-xl kantumruy text-blue-900">Uploading {tab}...</p>
+            </>
+          ) : selected[tab] ? (
+            <>
+              <img 
+                src={selected[tab].src} 
+                alt={selected[tab].name}
+                className="h-48 w-auto object-contain"
+              />
+              <p className="mt-2 text-lg kantumruy text-blue-900">{selected[tab].name}</p>
+            </>
+          ) : (
+            <>
+              <SelectIcon className="h-[200px] w-[150px] text-[#12396F]" />
+              <p className="mt-2 w-full text-2xl px-4 kantumruy text-blue-900/50">
+                Click to upload {tab.toLowerCase()} image
+              </p>
+            </>
+          )}
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => handleFileUpload(e.target.files)}
+        />
+        
+        {selected[tab] && !uploading && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelected((s) => ({ ...s, [tab]: null }));
+              // Notify parent that this part was removed so it can clear uploads / try-on state
+              onDropItem?.({ type: tab, data: null });
+            }}
+            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors"
+            title="Remove image"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+      </div>
 
-      {/* Gallery modal */}
-      {open && (
+      {/* Gallery modal - Optional for future use */}
+      {/* {open && (
         <GalleryModal
           title={`Select ${tab}`}
           items={g[tab]}
           onClose={() => setOpen(false)}
           onPick={(item) => applySelection(tab, item)}
         />
-      )}
+      )} */}
     </div>
   );
 }

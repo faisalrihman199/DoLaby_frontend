@@ -1,13 +1,16 @@
 import React from 'react'
 
-const Step1Register = ({ register, errors, watch, nextStep, prevStep, isFirstStep, isLastStep }) => {
-  const userType = watch('userType')
+const Step1Register = ({ register, errors, watch, nextStep, prevStep, isFirstStep, handleSubmit, onStep1Submit, isLoading, error }) => {
 
   return (
-    <form onSubmit={(e) => {
-      e.preventDefault()
-      nextStep()
-    }} className="space-y-8">
+    <form onSubmit={handleSubmit ? handleSubmit(onStep1Submit) : ((e) => { e.preventDefault(); nextStep() })} className="space-y-8">
+
+      {/* Server error message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded">
+          {error}
+        </div>
+      )}
       
       {/* Personal Information Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -182,8 +185,40 @@ const Step1Register = ({ register, errors, watch, nextStep, prevStep, isFirstSte
             )}
           </div>
 
+          {/* Email Field */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Email:
+            </label>
+            <input
+              {...register('email', { required: 'Email is required' })}
+              type="email"
+              className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              placeholder="Enter your email"
+            />
+            {errors.email && (
+              <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
+            )}
+          </div>
+
+          {/* Postal Code Field */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Postal Code:
+            </label>
+            <input
+              {...register('postalCode')}
+              type="text"
+              className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              placeholder="Enter your postal code"
+            />
+            {errors.postalCode && (
+              <p className="text-red-500 text-sm mt-1">{errors.postalCode.message}</p>
+            )}
+          </div>
+
           {/* User Type Selection */}
-          <div className="flex items-center space-x-4 pt-8">
+          {/* <div className="flex items-center space-x-4 pt-8">
             <label className="text-sm font-semibold text-gray-700">
               Are you
             </label>
@@ -198,7 +233,7 @@ const Step1Register = ({ register, errors, watch, nextStep, prevStep, isFirstSte
                 User
               </label>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -218,9 +253,10 @@ const Step1Register = ({ register, errors, watch, nextStep, prevStep, isFirstSte
         </button>
         <button
           type="submit"
-          className="px-8 py-3 bg-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-400 transition-colors"
+          disabled={isLoading}
+          className={`px-8 py-3 rounded-lg font-semibold transition-colors ${isLoading ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'}`}
         >
-          Next
+          {isLoading ? 'Processing...' : 'Next'}
         </button>
       </div>
     </form>

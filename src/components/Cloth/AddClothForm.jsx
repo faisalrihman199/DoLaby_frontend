@@ -9,27 +9,100 @@ import {
 } from "react-icons/md";
 import { IoHeartOutline } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
+import { useAPI } from "../../contexts/ApiContext";
 
 const sizes = ["S", "M", "L", "XL", "XXL"];
-const brands = ["Nike", "Adidas", "Zara", "Uniqlo"];
-const categories = ["Casual", "Formal", "Sport", "Party"];
-const statuses = ["New", "Used", "Favorite"];
+const types = [
+    "top",
+    "bottom",
+    "shoes",
+    
+];
+const categories = [
+    "casual",
+    "formal",
+    "sport",
+    "party",
+    "business",
+    "lounge",
+    "beach",
+    "vintage",
+    "trendy",
+    "other",
+];
+const statuses = [
+    "clean",
+    "dirty",
+    "ironed",
+    "washed",
+    "unwashed",
+    "dry_clean",
+    "needs_repair",
+    "other",
+];
+const seasons = ["spring", "summer", "autumn", "winter", "all_season"];
+const events = [
+    "casual",
+    "work",
+    "party",
+    "sport",
+    "formal",
+    "beach",
+    "wedding",
+    "holiday",
+    "other",
+];
 
 export default function AddClothForm() {
     const navigate = useNavigate();
+    const api = useAPI();
 
     // form state
+    const [name, setName] = useState("");
+    const [selectedType, setSelectedType] = useState("");
     const [selectedSize, setSelectedSize] = useState("L");
     const [selectedBrand, setSelectedBrand] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("");
     const [selectedStatus, setSelectedStatus] = useState("");
-    const [selectedEvent, setSelectedEvent] = useState("");
+    const [color, setColor] = useState("");
+    const [selectedSeason, setSelectedSeason] = useState("");
+    const [selectedEvents, setSelectedEvents] = useState([]);
+    const [notes, setNotes] = useState("");
+    const [favourite, setFavourite] = useState(false);
+
+    // brands from API
+    const [brands, setBrands] = useState([]);
+    const [brandsLoading, setBrandsLoading] = useState(false);
 
     // upload state
     const [preview, setPreview] = useState(null);
     const [fileName, setFileName] = useState("");
+    const [selectedFile, setSelectedFile] = useState(null);
     const objectUrlRef = useRef(null);
     const fileInputRef = useRef(null);
+
+    // submission state
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState(null);
+
+    // Fetch brands from API
+    useEffect(() => {
+        const fetchBrands = async () => {
+            setBrandsLoading(true);
+            try {
+                const res = await api.get('/brands');
+                const brandsList = res?.data || res || [];
+                setBrands(brandsList);
+            } catch (err) {
+                console.error('Error fetching brands:', err);
+                setBrands([]);
+            } finally {
+                setBrandsLoading(false);
+            }
+        };
+
+        fetchBrands();
+    }, [api]);
 
     const openPicker = () => fileInputRef.current?.click();
 
@@ -40,6 +113,7 @@ export default function AddClothForm() {
         objectUrlRef.current = url;
         setPreview(url);
         setFileName(file.name);
+        setSelectedFile(file);
     };
 
     const onFileChange = (e) => handleFiles(e.target.files?.[0]);
@@ -54,21 +128,78 @@ export default function AddClothForm() {
         objectUrlRef.current = null;
         setPreview(null);
         setFileName("");
+        setSelectedFile(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
-    const handleAddToWardrobe = () => {
-        navigate("/add-cloth/preview", {
-            state: {
-                title: "White Shirts casual",
-                imageUrl: preview,
-                size: selectedSize,
-                brand: selectedBrand || "H&M",
-                category: selectedCategory || "Shirts",
-                status: selectedStatus || "Clean",
-                events: ["Summer", "Beach", "casual"],
-            },
-        });
+    const handleEventChange = (event) => {
+        setSelectedEvents(prev => 
+            prev.includes(event) 
+                ? prev.filter(e => e !== event)
+                : [...prev, event]
+        );
+    };
+
+    const handleAddToWardrobe = async () => {
+        if (!name || !selectedType || !selectedCategory || !selectedBrand) {
+            setSubmitError('Please fill in required fields: name, type, category, and brand');
+            return;
+        }
+
+        setIsSubmitting(true);
+        setSubmitError(null);
+
+        try {
+            const formData = new FormData();
+            formData.append('name', name);
+            formData.append('type', selectedType);
+            formData.append('category', selectedCategory);
+            formData.append('color', color);
+            formData.append('size', selectedSize);
+            formData.append('season', selectedSeason);
+            formData.append('status', selectedStatus);
+            formData.append('events', JSON.stringify(selectedEvents));
+            formData.append('favourite', favourite);
+            formData.append('brand_id', selectedBrand);
+            formData.append('notes', notes);
+            
+            if (selectedFile) {
+                formData.append('image', selectedFile);
+            }
+
+            const res = await api.post('/wardrobe', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            console.log('Wardrobe item added:', res);
+            
+            // Navigate to preview with the added item data
+            navigate("/add-cloth/preview", {
+                state: {
+                    title: name,
+                    imageUrl: preview,
+                    size: selectedSize,
+                    brand: brands.find(b => b.id == selectedBrand)?.name || 'Unknown',
+                    category: selectedCategory,
+                    status: selectedStatus,
+                    events: selectedEvents,
+                    type: selectedType,
+                    color: color,
+                    season: selectedSeason,
+                    notes: notes,
+                    favourite: favourite,
+                    wardrobeItem: res?.data || res, // API response data
+                },
+            });
+            
+        } catch (err) {
+            console.error('Error adding to wardrobe:', err);
+            setSubmitError(err?.response?.data?.message || err.message || 'Failed to add item to wardrobe');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     useEffect(() => {
@@ -158,8 +289,39 @@ export default function AddClothForm() {
                     {/* RIGHT */}
                     <section className="lg:col-span-7 md:mt-12">
                         <h2 className="font-kanit text-[26px] sm:text-[28px] font-extrabold text-color-primary mb-3">
-                            White Shirts casual
+                            Add New Item
                         </h2>
+
+                        {/* Error display */}
+                        {submitError && (
+                            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded">
+                                {submitError}
+                            </div>
+                        )}
+
+                        {/* Name field */}
+                        <div className="mb-4">
+                            <Field label="Name *">
+                                <input
+                                    type="text"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    className="w-full max-w-md h-10 border border-[#2b4966] rounded-md px-3"
+                                    placeholder="e.g. White Casual Shirt"
+                                />
+                            </Field>
+                        </div>
+
+                        {/* Type field */}
+                        <div className="mb-4">
+                            <Field label="Type *">
+                                <Select
+                                    value={selectedType}
+                                    onChange={setSelectedType}
+                                    options={types}
+                                />
+                            </Field>
+                        </div>
 
                         {/* Size row */}
                         <div className="mb-4">
@@ -190,19 +352,38 @@ export default function AddClothForm() {
 
                         {/* Fields */}
                         <div className="space-y-3">
-                            <Field label="Brand">
-                                <Select
+                            <Field label="Brand *">
+                                <BrandSelect
                                     value={selectedBrand}
                                     onChange={setSelectedBrand}
-                                    options={brands}
+                                    brands={brands}
+                                    loading={brandsLoading}
                                 />
                             </Field>
 
-                            <Field label="Category">
+                            <Field label="Category *">
                                 <Select
                                     value={selectedCategory}
                                     onChange={setSelectedCategory}
                                     options={categories}
+                                />
+                            </Field>
+
+                            <Field label="Color">
+                                <input
+                                    type="text"
+                                    value={color}
+                                    onChange={(e) => setColor(e.target.value)}
+                                    className="w-full max-w-md h-10 border border-[#2b4966] rounded-md px-3"
+                                    placeholder="e.g. white, blue"
+                                />
+                            </Field>
+
+                            <Field label="Season">
+                                <Select
+                                    value={selectedSeason}
+                                    onChange={setSelectedSeason}
+                                    options={seasons}
                                 />
                             </Field>
 
@@ -215,11 +396,40 @@ export default function AddClothForm() {
                             </Field>
 
                             <Field label="Events">
-                                <Select
-                                    value={selectedEvent}
-                                    onChange={setSelectedEvent}
-                                    options={categories}
+                                <div className="flex flex-wrap gap-2">
+                                    {events.map((event) => (
+                                        <label key={event} className="inline-flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedEvents.includes(event)}
+                                                onChange={() => handleEventChange(event)}
+                                                className="mr-1"
+                                            />
+                                            <span className="text-sm">{event}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </Field>
+
+                            <Field label="Notes">
+                                <textarea
+                                    value={notes}
+                                    onChange={(e) => setNotes(e.target.value)}
+                                    className="w-full max-w-md h-20 border border-[#2b4966] rounded-md px-3 py-2 resize-none"
+                                    placeholder="Additional notes about this item"
                                 />
+                            </Field>
+
+                            <Field label="Favourite">
+                                <label className="inline-flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={favourite}
+                                        onChange={(e) => setFavourite(e.target.checked)}
+                                        className="mr-2"
+                                    />
+                                    <span>Mark as favourite</span>
+                                </label>
                             </Field>
                         </div>
 
@@ -231,13 +441,20 @@ export default function AddClothForm() {
                                 <span className="text-[10px] align-top ml-1">VR</span>
                             </MutedBtn>
 
-                            <MutedBtn className="flex-1 sm:flex-none" onClick={handleAddToWardrobe}>
-                                Add to Wardrobe
+                            <MutedBtn 
+                                className="flex-1 sm:flex-none" 
+                                onClick={handleAddToWardrobe}
+                                disabled={isSubmitting}
+                            >
+                                {isSubmitting ? 'Adding...' : 'Add to Wardrobe'}
                             </MutedBtn>
 
-                            <MutedBtn className="flex-1 sm:flex-none">
-                                <IoHeartOutline className="text-[18px]" />
-                                <span className="ml-2">Add to favorite</span>
+                            <MutedBtn 
+                                className="flex-1 sm:flex-none"
+                                onClick={() => setFavourite(!favourite)}
+                            >
+                                <IoHeartOutline className={`text-[18px] ${favourite ? 'text-red-500' : ''}`} />
+                                <span className="ml-2">{favourite ? 'Remove from' : 'Add to'} favorite</span>
                             </MutedBtn>
                         </div>
                     </section>
@@ -276,12 +493,35 @@ function Select({ value, onChange, options }) {
     );
 }
 
-function MutedBtn({ children, className = "", onClick }) {
+function BrandSelect({ value, onChange, brands, loading }) {
+    return (
+        <select
+            className="w-full max-w-md h-10 border border-[#2b4966] rounded-md px-3 bg-white"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            disabled={loading}
+        >
+            <option value="">Select Brand</option>
+            {loading ? (
+                <option disabled>Loading brands...</option>
+            ) : (
+                brands.map((brand) => (
+                    <option key={brand.id} value={brand.id}>
+                        {brand.name}
+                    </option>
+                ))
+            )}
+        </select>
+    );
+}
+
+function MutedBtn({ children, className = "", onClick, disabled = false }) {
     return (
         <button
             onClick={onClick}
+            disabled={disabled}
             className={
-                "px-4 py-2 rounded-md bg-[#d8d8d8] text-[#2b4966] font-semibold shadow-sm hover:opacity-90 inline-flex items-center justify-center " +
+                "px-4 py-2 rounded-md bg-[#d8d8d8] text-[#2b4966] font-semibold shadow-sm hover:opacity-90 inline-flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed " +
                 className
             }
         >

@@ -1,8 +1,22 @@
 import React from 'react'
 import NavButtons from './NavButtons'
+import { useNavigate } from 'react-router-dom'
 
-const Step7Profile = ({ register, errors, watch, nextStep, prevStep, isFirstStep, isLastStep, onSubmit }) => {
+const Step7Profile = ({ 
+  register, 
+  errors, 
+  watch, 
+  nextStep, 
+  prevStep, 
+  isFirstStep, 
+  isLastStep, 
+  onSubmit,
+  onComplete,
+  isCompleting,
+  completionError
+}) => {
   const formData = watch()
+  const navigate = useNavigate()
 
   return (
     <form onSubmit={onSubmit} className="space-y-8">
@@ -10,6 +24,22 @@ const Step7Profile = ({ register, errors, watch, nextStep, prevStep, isFirstStep
       <div className="text-center mb-8">
         <p className="text-gray-600">Your account has been created successfully!</p>
       </div>
+
+      {/* Show error if profile completion failed */}
+      {completionError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-center max-w-md mx-auto">
+          <p className="font-medium">Profile Setup Error</p>
+          <p className="text-sm mt-1">{completionError}</p>
+        </div>
+      )}
+
+      {/* Show loading state during profile fetch */}
+      {isCompleting && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg text-center max-w-md mx-auto">
+          <p className="font-medium">Completing your profile...</p>
+          <p className="text-sm mt-1">Please wait while we fetch your information.</p>
+        </div>
+      )}
 
       {/* Profile Card */}
       <div className="bg-white rounded-lg p-8  max-w-md mx-auto">
@@ -57,13 +87,19 @@ const Step7Profile = ({ register, errors, watch, nextStep, prevStep, isFirstStep
         <div className="text-center">
           <button
             type="button"
-            className="w-full bg-gray-200 text-gray-800 py-3 px-6 rounded-lg font-semibold hover:bg-gray-300 transition-colors shadow-sm"
+            className="w-full bg-gray-200 text-gray-800 py-3 px-6 rounded-lg font-semibold hover:bg-gray-300 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={() => {
-              // Navigate to wardrobe or dashboard
-              console.log('Navigate to wardrobe')
+              // Call onComplete to fetch profile and clear signup data
+              if (onComplete) {
+                onComplete()
+              } else {
+                // Fallback to simple navigation
+                navigate('/wardrobe')
+              }
             }}
+            disabled={isCompleting}
           >
-            Wardrobe
+            {isCompleting ? 'Loading...' : 'Wardrobe'}
           </button>
         </div>
       </div>

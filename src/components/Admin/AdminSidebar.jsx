@@ -1,0 +1,93 @@
+import React, { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { 
+  MdDashboard, 
+  MdInventory, 
+  MdShoppingCart, 
+  MdEvent, 
+  MdCategory, 
+  MdSettings,
+  MdPeople,
+  MdMenu,
+  MdClose
+} from 'react-icons/md';
+
+const AdminSidebar = () => {
+  const location = useLocation();
+  const [isOpen, setIsOpen] = useState(false);
+
+  const navItems = [
+    { name: 'Dashboard', path: '/admin/dashboard', icon: MdDashboard },
+    { name: 'Manage Users', path: '/admin/users', icon: MdPeople },
+    { name: 'Manage Products', path: '/admin/products', icon: MdInventory },
+    { name: 'Manage Orders', path: '/admin/orders', icon: MdShoppingCart },
+    { name: 'Manage Events', path: '/admin/events', icon: MdEvent },
+    { name: 'Manage Category', path: '/admin/categories', icon: MdCategory },
+    { name: 'Settings', path: '/admin/settings', icon: MdSettings },
+  ];
+
+  const isActive = (path) => location.pathname === path;
+
+  return (
+    <>
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-lg border border-gray-200"
+      >
+        {isOpen ? (
+          <MdClose className="w-6 h-6 text-gray-700" />
+        ) : (
+          <MdMenu className="w-6 h-6 text-gray-700" />
+        )}
+      </button>
+
+      {/* Overlay for mobile */}
+      {isOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div className={`
+        fixed lg:static inset-y-0 left-0 z-40
+        w-64 bg-white min-h-screen shadow-xl border-r border-gray-100
+        transform transition-transform duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        {/* Logo */}
+        <div className="p-6 border-b border-gray-100">
+          <h1 className="text-3xl font-['Brush_Script_MT',cursive] text-[#1e3a5f]">Dolaby</h1>
+        </div>
+
+        {/* Navigation */}
+        <nav className="py-4 px-2">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item.path);
+
+            return (
+              <Link
+                key={item.name}
+                to={item.path}
+                onClick={() => setIsOpen(false)}
+                className={`flex items-center px-4 py-3 mb-1 rounded-lg transition-all duration-200 ${
+                  active 
+                    ? 'bg-blue-50 text-blue-600 border-l-4 border-blue-600 shadow-sm' 
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                }`}
+              >
+                <Icon className="w-5 h-5 flex-shrink-0" />
+                <span className="ml-3 font-medium text-sm">{item.name}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
+    </>
+  );
+};
+
+export default AdminSidebar;

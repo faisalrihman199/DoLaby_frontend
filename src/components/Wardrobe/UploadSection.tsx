@@ -1,12 +1,15 @@
 import { Camera, CameraIcon } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useAPP } from "../../contexts/AppContext";
 
 interface UploadSectionProps {
-  onImageUpload: (image: string) => void;
+  onImageUpload: (file: File) => void;
+  uploading?: boolean;
 }
 
-const UploadSection = ({ onImageUpload }: UploadSectionProps) => {
+const UploadSection = ({ onImageUpload, uploading = false }: UploadSectionProps) => {
   const [isDragging, setIsDragging] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -23,22 +26,45 @@ const UploadSection = ({ onImageUpload }: UploadSectionProps) => {
 
     const file = e.dataTransfer.files[0];
     if (file && file.type.startsWith("image/")) {
+      // Create preview
       const reader = new FileReader();
       reader.onload = (e) => {
-        onImageUpload(e.target?.result as string);
+        setPreview(e.target?.result as string);
       };
       reader.readAsDataURL(file);
+      
+      // Pass file to parent
+      onImageUpload(file);
     }
   };
 
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const {user}=useAPP();
+  
+  // If user has a measurement image, show it as the initial preview
+  useEffect(() => {
+    if (!preview && user?.measurement_image) {
+      setPreview(user.measurement_image);
+    }
+  }, [user, preview]);
+  
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Create preview
       const reader = new FileReader();
       reader.onload = (e) => {
-        onImageUpload(e.target?.result as string);
+        setPreview(e.target?.result as string);
       };
       reader.readAsDataURL(file);
+      
+      // Pass file to parent
+      onImageUpload(file);
+
+      // Reset input so selecting same file again triggers change
+      try {
+        if (inputRef.current) inputRef.current.value = '';
+      } catch (err) { /* ignore */ }
     }
   };
 
@@ -52,26 +78,42 @@ const UploadSection = ({ onImageUpload }: UploadSectionProps) => {
       </div>
       <div
         className={`w-full max-w-sm rounded-lg p-8 py-4 flex flex-col items-center justify-center transition-colors ${isDragging ? "border-primary bg-accent" : ""
-          }`}
+          } ${uploading ? 'opacity-50' : ''}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        <CameraIcon className="h-36 w-36 text-blue-900" />
-        <p className="mt-2 w-full text-center text-3xl kantumruy text-blue-900/50">Click to upload
+        {uploading ? (
+          <>
+            <div className="animate-spin rounded-full h-36 w-36 border-b-4 border-blue-900"></div>
+            <p className="mt-4 text-xl kantumruy text-blue-900">Uploading...</p>
+          </>
+        ) : preview ? (
+          <>
+            <img src={preview} alt="Preview" className="h-80 w-auto object-contain rounded-lg" />
+           
+          </>
+        ) : (
+          <>
+            <CameraIcon className="h-36 w-36 text-blue-900" />
+            <p className="mt-2 w-full text-center text-3xl kantumruy text-blue-900/50">Click to upload
 
-          or drag photo here</p>
+              or drag photo here</p>
+          </>
+        )}
       </div>
 
       <label className="mt-6 cursor-pointer">
         <input
+          ref={inputRef}
           type="file"
           accept="image/*"
           className="hidden"
           onChange={handleFileSelect}
+          disabled={uploading}
         />
-        <span className="inline-block px-8 py-2 bg-white border-1 border-color-primary text-color-primary rounded-lg hover:bg-accent transition-colors font-medium">
-          Upload
+        <span className={`inline-block px-8 py-2 bg-white border-1 border-color-primary text-color-primary rounded-lg hover:bg-accent transition-colors font-medium ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+          {uploading ? 'Uploading...' : preview ? 'Change Photo' : 'Upload'}
         </span>
       </label>
     </div>

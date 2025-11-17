@@ -1,22 +1,62 @@
 import React, { useRef, useState } from 'react'
 import { UploadCloud, XCircle } from 'lucide-react';
 
-const Step4Measurement = ({ register, errors, watch, nextStep, prevStep, isFirstStep, isLastStep }) => {
+const Step2Measurement = ({ register, errors, watch, nextStep, prevStep, _isFirstStep, _isLastStep, handleSubmit, onStep2Submit, isLoading, error, existingImage }) => {
   const [photo, setPhoto] = useState(null);
+  const [photoFile, setPhotoFile] = useState(null);
   const inputRef = useRef();
   const handlePhotoChange = (e) => {
-    const file = e.target.files[0];
+    // Support both input change events and drop events
+    const file = (e.target && e.target.files && e.target.files[0]) || (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]);
     if (file) {
+      // Store the actual File object for upload
+      setPhotoFile(file);
+      
+      // Create preview
       const reader = new FileReader();
       reader.onload = () => setPhoto(reader.result);
       reader.readAsDataURL(file);
     }
   };
-  return (
-    <form onSubmit={(e) => {
-      e.preventDefault()
+  const submitHandler = (formData) => {
+    const payload = {}
+    
+    // Only include non-empty measurement values
+    if (formData.length) payload.length = String(formData.length)
+    if (formData.chest) payload.chest = String(formData.chest)
+    if (formData.waist) payload.waist = String(formData.waist)
+    if (formData.hips) payload.hips = String(formData.hips)
+    
+    // Only include image if user has selected a new file
+    // (don't re-send existingImage on subsequent submissions)
+    if (photoFile) {
+      payload.image = photoFile
+    }
+    
+    if (onStep2Submit) {
+      onStep2Submit(payload)
+    } else {
       nextStep()
-    }} className="space-y-8">
+    }
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit ? handleSubmit(submitHandler) : (e) => { e.preventDefault(); submitHandler({ length: watch('length'), chest: watch('chest'), waist: watch('waist'), hips: watch('hips') }) }}
+      className="space-y-8"
+    >
+      {/* Show existing image (from server) when no new photo selected */}
+      {!photo && existingImage && (
+        <div className="mb-4 flex items-center justify-center">
+          <img src={existingImage} alt="Measurement" className="max-h-64 object-contain rounded" />
+        </div>
+      )}
+      {/* Server error message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded">
+          {error}
+        </div>
+      )}
 
       <div className="text-center mb-8">
         <p className="text-gray-600">Please provide your body measurements for a better fit</p>
@@ -134,7 +174,7 @@ const Step4Measurement = ({ register, errors, watch, nextStep, prevStep, isFirst
                   <button
                     type="button"
                     className="absolute top-2 right-2 bg-white/80 rounded-full p-1 shadow hover:bg-red-100"
-                    onClick={e => { e.stopPropagation(); setPhoto(null); }}
+                    onClick={e => { e.stopPropagation(); setPhoto(null); setPhotoFile(null); }}
                     tabIndex={-1}
                   >
                     <XCircle className="w-7 h-7 text-red-500" />
@@ -170,9 +210,10 @@ const Step4Measurement = ({ register, errors, watch, nextStep, prevStep, isFirst
         </button>
         <button
           type="submit"
-          className="px-8 py-3 bg-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-400 transition-colors"
+          disabled={isLoading}
+          className={`px-8 py-3 rounded-lg font-semibold transition-colors ${isLoading ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'}`}
         >
-          Next
+          {isLoading ? 'Processing...' : 'Next'}
         </button>
         <button
           type="button"
@@ -186,4 +227,4 @@ const Step4Measurement = ({ register, errors, watch, nextStep, prevStep, isFirst
   )
 }
 
-export default Step4Measurement
+export default Step2Measurement

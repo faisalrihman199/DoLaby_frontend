@@ -1,4 +1,4 @@
-import { Check, Star, Sparkles, Trash2 } from "lucide-react";
+import { Check, Star, Sparkles, Trash2, Heart } from "lucide-react";
 
 interface ClothingCardProps {
   id: number;
@@ -9,9 +9,11 @@ interface ClothingCardProps {
   onSelect: () => void;
   favorite?: boolean;
   featured?: boolean;
+  onToggleFavorite?: (id: number) => void;
 }
 
 const ClothingCard = ({
+  id,
   image,
   brand,
   category,
@@ -19,6 +21,7 @@ const ClothingCard = ({
   onSelect,
   favorite,
   featured,
+  onToggleFavorite,
 }: ClothingCardProps) => {
   return (
     <div
@@ -46,7 +49,7 @@ const ClothingCard = ({
         <img
           src={image}
           alt={category}
-          className="w-[200px] h-[150px] object-cover rounded"
+          className="w-[200px] h-[150px] object-contain rounded"
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).src = "https://www.pngall.com/wp-content/uploads/2016/05/Clothes-PNG-Image.png";
           }}
@@ -60,6 +63,19 @@ const ClothingCard = ({
             <Trash2 className="w-3 h-3" />
           </button>
           <div className="flex gap-1">
+            {onToggleFavorite && (
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent triggering the card selection
+                  onToggleFavorite(id);
+                }}
+                className="text-gray-400 hover:text-red-500 transition-colors"
+              >
+                <Heart 
+                  className={`w-3 h-3 ${favorite ? 'fill-red-500 text-red-500' : ''}`} 
+                />
+              </button>
+            )}
             {favorite && (
               <Star className="w-3 h-3 fill-[hsl(var(--wardrobe-accent))] text-[hsl(var(--wardrobe-accent))]" />
             )}
