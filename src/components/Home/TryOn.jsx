@@ -31,29 +31,29 @@ function UploadPhotoStep({ photo, onChange, onFileSelected, uploading }) {
       </div>
 
       <div
-        className={`flex h-100  mt-8 w-full cursor-pointer flex-col items-center justify-center rounded-2xl  text-center transition
-          ${hover ? "border-blue-500 bg-blue-50" : "border-blue-200 "}${uploading ? ' opacity-50 pointer-events-none' : ''}`}
+        className="relative mt-6 w-full overflow-hidden rounded-2xl bg-white/60 cursor-pointer transition"
+        style={{ aspectRatio: '9 / 16', height: '450px', maxWidth: '280px', margin: '0 auto' }}
         onClick={() => !uploading && inputRef.current?.click()}
         onDragOver={(e) => { e.preventDefault(); setHover(true); }}
         onDragLeave={() => setHover(false)}
         onDrop={(e) => { e.preventDefault(); setHover(false); handleFiles(e.dataTransfer.files); }}
       >
         {uploading ? (
-          <>
-            <div className="animate-spin rounded-full h-36 w-36 border-b-4 border-blue-900"></div>
-            <p className="mt-2 w-full text-2xl px-4 kantumruy text-blue-900/50">Uploading...</p>
-          </>
+          <div className="flex h-full flex-col items-center justify-center">
+            <div className="animate-spin rounded-full h-24 w-24 border-b-4 border-blue-900"></div>
+            <p className="mt-4 w-full text-2xl text-center px-4 kantumruy text-blue-900">Uploading...</p>
+          </div>
         ) : photo ? (
-          <>
-            <img src={photo} alt="Uploaded" className="h-100 w-50  rounded-lg" />
-          </>
+          <div className="w-full h-full flex items-center justify-center bg-white p-2">
+            <img src={photo} alt="Uploaded" className="w-full h-full object-contain rounded-lg" />
+          </div>
         ) : (
-          <>
-            <CameraIcon className="h-36 w-36 text-blue-900" />
-            <p className="mt-2 w-full text-3xl px-4 kantumruy text-blue-900/50">Click to upload 
+          <div className="flex h-full flex-col items-center justify-center">
+            <CameraIcon className="h-24 w-24 text-blue-900" />
+            <p className="mt-2 w-full text-3xl text-center px-4 kantumruy text-blue-900/50">Click to upload
             <br />
             or drag photo here</p>
-          </>
+          </div>
         )}
         <input
           ref={inputRef}
@@ -75,7 +75,7 @@ function UploadPhotoStep({ photo, onChange, onFileSelected, uploading }) {
 }
 
 /* Step 3: preview */
-function PreviewResultStep({ resultUrl, tryOnLoading, tryOnError, tryOnData }) {
+function PreviewResultStep({ resultUrl, tryOnLoading, tryOnError, tryOnData, onSave, saving }) {
   return (
     <div className="rounded-3xl bg-white p-4 ">
      <div className="mb-3 flex items-center gap-3 justify-center">
@@ -87,7 +87,7 @@ function PreviewResultStep({ resultUrl, tryOnLoading, tryOnError, tryOnData }) {
 
       <div
         className="relative mt-6 w-full overflow-hidden rounded-2xl border-2 border-dashed border-blue-200 bg-white/60"
-        style={{ aspectRatio: '9 / 16', minHeight: 280, maxWidth: 280, margin: '0 auto' }}
+        style={{ aspectRatio: '9 / 16', height: '450px', maxWidth: '280px', margin: '0 auto' }}
       >
         {tryOnLoading ? (
           <div className="flex h-full flex-col items-center justify-center">
@@ -109,7 +109,7 @@ function PreviewResultStep({ resultUrl, tryOnLoading, tryOnError, tryOnData }) {
               <img
                 src={resultUrl}
                 alt="Try-on result"
-                className="w-50 h-100"
+                className="w-full h-full object-cover rounded-lg"
                 style={{ filter: 'drop-shadow(0 6px 8px rgba(0,0,0,0.12))' }}
               />
               {/* Icon buttons overlay */}
@@ -174,6 +174,30 @@ function PreviewResultStep({ resultUrl, tryOnLoading, tryOnError, tryOnData }) {
         )}
       </div>
 
+      {resultUrl && onSave && !tryOnLoading && (
+        <div className="mt-4 flex justify-center">
+          <button 
+            onClick={() => onSave(true)}
+            disabled={saving}
+            className="px-8 py-2.5 bg-[#035477] text-white rounded-lg hover:bg-[#02405e] transition-colors font-medium kantumruy flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+          >
+            {saving ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                Saving...
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                </svg>
+                Save
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
       {/* <div className="mt-3 flex gap-2">
         <button
           type="button"
@@ -210,6 +234,7 @@ export default function TryOn() {
   const [tryOnError, setTryOnError] = useState(null);
   const [resultUrl, setResultUrl] = useState(null);
   const [tryOnData, setTryOnData] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   // Initialize device fingerprint
   useEffect(() => {
@@ -383,12 +408,12 @@ export default function TryOn() {
   // Perform try-on
   const performTryOn = async () => {
     if (!uploadedUrls.personUrl) {
-      alert('Please upload your photo first');
+      showError('Please upload your photo first');
       return;
     }
 
     if (!uploadedUrls.topUrl && !uploadedUrls.bottomUrl) {
-      alert('Please select at least one outfit item (top or bottom)');
+      showError('Please select at least one outfit item (top or bottom)');
       return;
     }
 
@@ -436,13 +461,59 @@ export default function TryOn() {
     }
   }, [uploadedUrls, deviceFingerprint]);
 
+  // Handle save try-on result to wardrobe
+  const handleSaveTryOnResult = async (favourite) => {
+    if (!resultUrl) {
+      showError('No try-on result to save');
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      // Fetch the image and convert to blob
+      const response = await fetch(resultUrl);
+      const blob = await response.blob();
+      const file = new File([blob], 'try-on-result.jpg', { type: 'image/jpeg' });
+      
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('name', 'Try-On Result');
+      formData.append('type', 'outfit'); // Save as outfit type
+      formData.append('category', 'other');
+      formData.append('size', 'M');
+      formData.append('favourite', favourite.toString());
+      formData.append('color', '');
+      formData.append('season', 'all_season');
+      formData.append('status', 'clean');
+      formData.append('events', JSON.stringify([]));
+      formData.append('notes', 'Saved from try-on');
+
+      const result = await api.post('/wardrobe', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      console.log('Try-on result saved to wardrobe:', result);
+      showSuccess('Try-on result saved to wardrobe!');
+      
+    } catch (err) {
+      console.error('Error saving try-on result:', err);
+      showError(err?.response?.data?.message || err?.message || 'Failed to save to wardrobe');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
-    <div className="mx-auto max-w-7xl px-4 md:px-6 py-4 flex flex-col justify-center min-h-[80vh]">
+    <div id="try-on" className="mx-auto max-w-7xl px-4 md:px-6 py-4 flex flex-col justify-center min-h-[80vh]">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <ChooseOutfitStep
           onTabChange={() => { }}
           onDropItem={handleOutfitSelection}
           onImageUpload={uploadImage}
+          onTryOn={performTryOn}
         />
         <UploadPhotoStep 
           photo={photo} 
@@ -455,6 +526,8 @@ export default function TryOn() {
           tryOnLoading={tryOnLoading}
           tryOnError={tryOnError}
           tryOnData={tryOnData}
+          onSave={handleSaveTryOnResult}
+          saving={saving}
         />
       </div>
     </div>

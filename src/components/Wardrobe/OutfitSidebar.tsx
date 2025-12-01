@@ -3,6 +3,8 @@ import { GoArrowSwitch } from "react-icons/go";
 import { IoSparkles, IoSparklesOutline } from "react-icons/io5";
 import { WardrobeItem } from "../../types/wardrobe";
 import { useAPP } from "../../contexts/AppContext";
+import botImage from "../../assets/DummyWardrobe/AI_Bot/bot.png";
+import defaultBottomImage from "../../assets/DummyWardrobe/Bottom/1.png";
 
 interface OutfitSidebarProps {
   selectedTop?: WardrobeItem;
@@ -23,21 +25,18 @@ const OutfitSidebar = ({ selectedTop, selectedBottom, selectedShoes, onTryOn, on
       image: selectedTop?.image_url || user?.measurement_image || "https://pngimg.com/uploads/tshirt/tshirt_PNG5439.png",
       label: "Top",
       name: selectedTop?.name || "Select a top",
-      brand: selectedTop?.brand?.name || "",
     },
     {
       id: 2,
-      image: selectedBottom?.image_url || user?.measurement_image || "src/assets/DummyWardrobe/Bottom/1.png",
+      image: selectedBottom?.image_url || user?.measurement_image || defaultBottomImage,
       label: "Bottom",
       name: selectedBottom?.name || "Select bottoms",
-      brand: selectedBottom?.brand?.name || "",
     },
     {
       id: 3,
       image: selectedShoes?.image_url || "https://down-yuantu.pngtree.com/shetu/element/40134/5093.png?e=1760912609&st=MzE2ZmU1ZTY3OTk5Y2U4OGFiMjY2ZTdmN2IzZDdmMGI&n=%E2%80%94Pngtree%E2%80%94black+sneakers_5649575.png",
       label: "Shoes",
       name: selectedShoes?.name || "Select shoes",
-      brand: selectedShoes?.brand?.name || "",
     },
   ];
 
@@ -47,7 +46,7 @@ const OutfitSidebar = ({ selectedTop, selectedBottom, selectedShoes, onTryOn, on
   return (
     <div className="w-[100%] flex ">
       <div className="w-[30%] hidden md:flex items-end px-1" >
-        <img src="src/assets/DummyWardrobe/AI_Bot/bot.png" alt="AI Bot"
+        <img src={botImage} alt="AI Bot"
           className="max-w-full"
         />
       </div>
@@ -61,13 +60,13 @@ const OutfitSidebar = ({ selectedTop, selectedBottom, selectedShoes, onTryOn, on
         <div className="flex  md:flex-col gap-4" style={animStyle}>
           {outfitItems.map((item, index) => (
             <div key={item.id} className="relative rounded-xl bg-[#E8F2FF] p-3">
-              <button
+              {/* <button
                 type="button"
                 aria-label="favorite"
                 className="absolute right-3 top-3 inline-flex items-center justify-center text-sky-900/60 hover:text-sky-900"
               >
                 <GoArrowSwitch className="hidden md:block w-7 h-5 text-black " />
-              </button>
+              </button> */}
 
               <div className="flex items-start justify-between gap-4">
                 <img
@@ -100,9 +99,6 @@ const OutfitSidebar = ({ selectedTop, selectedBottom, selectedShoes, onTryOn, on
               <div className="mt-1 flex  items-center justify-between md:text-[20px] sm:text-[15px] leading-none text-sky-800 font-kanit">
                 <div>
                   <div>{item.label}</div>
-                  {item.brand && (
-                    <div className="text-xs text-gray-600">{item.brand}</div>
-                  )}
                 </div>
                 <GoArrowSwitch className="md:hidden sm:block w-5 h-4 text-black " />
               </div>

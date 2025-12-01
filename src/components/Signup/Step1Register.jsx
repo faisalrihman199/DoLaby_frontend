@@ -86,21 +86,7 @@ const Step1Register = ({ register, errors, watch, nextStep, prevStep, isFirstSte
             )}
           </div>
 
-          {/* Location Field */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Location:
-            </label>
-            <input
-              {...register('location', { required: 'Location is required' })}
-              type="text"
-              className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-              placeholder="Enter your location"
-            />
-            {errors.location && (
-              <p className="text-red-500 text-sm mt-1">{errors.location.message}</p>
-            )}
-          </div>
+          {/* Location Field removed per request */}
 
           {/* Country Field */}
           <div>
@@ -251,6 +237,8 @@ const Step1Register = ({ register, errors, watch, nextStep, prevStep, isFirstSte
         >
           Cancel
         </button>
+
+        {/* Primary Next: submit the form (validate + potentially send to backend) */}
         <button
           type="submit"
           disabled={isLoading}

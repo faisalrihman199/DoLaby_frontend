@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { MdEdit, MdDelete, MdAdd, MdClose, MdPeople, MdSearch } from 'react-icons/md';
 import { useAPI } from '../../contexts/ApiContext';
+import { useToast } from '../../components/Toast/ToastContainer';
 
 const ManageUsers = () => {
   const api = useAPI();
+  const { showSuccess, showError } = useToast();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, pages: 0 });
@@ -21,25 +23,55 @@ const ManageUsers = () => {
     last_name: '',
     email: '',
     role: 'user',
-    is_active: true
+    password: ''
   });
   const [formError, setFormError] = useState('');
   const [formLoading, setFormLoading] = useState(false);
 
-  // Fetch users
+  // Fetch users (robust to multiple response shapes)
   const fetchUsers = async (page = 1) => {
     setLoading(true);
     try {
       const response = await api.get(`/users?page=${page}&limit=${pagination.limit}`);
-      const data = response?.data || response;
-      
-      if (data.success) {
-        setUsers(data.data.users || []);
-        setPagination(data.data.pagination || { page: 1, limit: 10, total: 0, pages: 0 });
+      // response may be: axiosResp, or already parsed data depending on api wrapper
+      const raw = response;
+      const data = (response && response.data) ? response.data : response;
+
+      // Normalize possible shapes
+      // 1) { success, data: { users, pagination } }
+      // 2) { users, pagination }
+      // 3) { data: { users, pagination } } (without success)
+      let usersArr = [];
+      let paginationObj = null;
+
+      if (data) {
+        if (Array.isArray(data.users)) {
+          usersArr = data.users;
+          paginationObj = data.pagination || null;
+        } else if (data.data && Array.isArray(data.data.users)) {
+          usersArr = data.data.users;
+          paginationObj = data.data.pagination || null;
+        } else if (data.success && data.data && Array.isArray(data.data.users)) {
+          usersArr = data.data.users;
+          paginationObj = data.data.pagination || null;
+        }
       }
+
+      // Fallback: sometimes wrapper returns the users array directly
+      if (!usersArr.length) {
+        if (Array.isArray(response)) usersArr = response;
+      }
+
+      console.debug('fetchUsers -> raw response:', raw);
+      console.debug('fetchUsers -> parsed users count:', usersArr.length, 'pagination:', paginationObj);
+
+      setUsers(usersArr || []);
+      if (paginationObj) setPagination(paginationObj);
+      else setPagination(prev => ({ ...prev, page }));
     } catch (error) {
       console.error('Error fetching users:', error);
-      alert('Failed to fetch users');
+      showError('Failed to fetch users. Please try again.');
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -58,7 +90,7 @@ const ManageUsers = () => {
       last_name: user.last_name || '',
       email: user.email || '',
       role: user.role || 'user',
-      is_active: user.is_active !== undefined ? user.is_active : true
+      password: ''
     });
     setFormError('');
     setShowEditModal(true);
@@ -77,10 +109,22 @@ const ManageUsers = () => {
     setFormLoading(true);
 
     try {
-      const response = await api.put(`/users/${selectedUser.id}`, formData);
-      
-      if (response?.data?.success || response?.success) {
-        alert('User updated successfully');
+      // Build payload: only include password if admin provided one
+      const payload = {
+        first_name: formData.first_name,
+        middle_name: formData.middle_name,
+        last_name: formData.last_name,
+        email: formData.email,
+        role: formData.role
+      };
+      if (formData.password && String(formData.password).trim().length > 0) {
+        payload.password = formData.password;
+      }
+
+      const response = await api.put(`/users/${selectedUser.id}`, payload);
+
+      if (response?.data?.success || response?.success || response?.status === 200) {
+        showSuccess('User updated successfully!');
         setShowEditModal(false);
         fetchUsers(pagination.page);
       }
@@ -98,14 +142,33 @@ const ManageUsers = () => {
     setFormLoading(true);
     try {
       await api.delete(`/users/${selectedUser.id}`);
-      alert('User deleted successfully');
+      showSuccess('User deleted successfully!');
       setShowDeleteModal(false);
       fetchUsers(pagination.page);
     } catch (error) {
       console.error('Error deleting user:', error);
-      alert(error?.response?.data?.message || 'Failed to delete user');
+      showError(error?.response?.data?.message || 'Failed to delete user');
     } finally {
       setFormLoading(false);
+    }
+  };
+
+  // Toggle user status (active/inactive)
+  const handleToggleStatus = async (user) => {
+    const newStatus = user.is_active ? 0 : 1;
+    try {
+      const response = await api.put(`/users/${user.id}`, { is_active: newStatus });
+      
+      if (response?.data?.success || response?.success || response?.status === 200) {
+        // Update local state
+        setUsers(users.map(u => 
+          u.id === user.id ? { ...u, is_active: newStatus } : u
+        ));
+        showSuccess(`User ${newStatus ? 'activated' : 'deactivated'} successfully!`);
+      }
+    } catch (error) {
+      console.error('Error toggling user status:', error);
+      showError(error?.response?.data?.message || 'Failed to update user status');
     }
   };
 
@@ -174,21 +237,51 @@ const ManageUsers = () => {
                 <table className="w-full min-w-[800px]">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">ID</th>
                       <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Avatar</th>
                       <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Name</th>
                       <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Email</th>
                       <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Role</th>
                       <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
                       <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Provider</th>
+                      <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Try-Ons</th>
                       <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Last Login</th>
                       <th className="px-4 sm:px-6 py-3 sm:py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {filteredUsers.map((user) => (
+                    {filteredUsers.length === 0 ? (
+                      <tr>
+                        <td colSpan="9" className="px-6 py-12 text-center">
+                          <div className="flex flex-col items-center justify-center">
+                            <MdPeople className="w-16 h-16 text-gray-300 mb-4" />
+                            <p className="text-gray-500 text-lg font-medium">No users found</p>
+                            <p className="text-gray-400 text-sm mt-1">
+                              {searchQuery ? 'Try adjusting your search' : 'Users will appear here when available'}
+                            </p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredUsers.map((user) => {
+                        // Format last login with date and time in AM/PM
+                        const formatLastLogin = (dateString) => {
+                          if (!dateString) return 'Never';
+                          const date = new Date(dateString);
+                          const dateStr = date.toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric', 
+                            year: 'numeric' 
+                          });
+                          const timeStr = date.toLocaleTimeString('en-US', { 
+                            hour: 'numeric', 
+                            minute: '2-digit', 
+                            hour12: true 
+                          });
+                          return `${dateStr} ${timeStr}`;
+                        };
+
+                        return (
                       <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">#{user.id}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {user.avatar_url ? (
                             <img src={user.avatar_url} alt={user.first_name} className="w-10 h-10 rounded-full object-cover" />
@@ -214,19 +307,28 @@ const ManageUsers = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                            user.is_active 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {user.is_active ? 'Active' : 'Inactive'}
-                          </span>
+                          <button
+                            onClick={() => handleToggleStatus(user)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                              user.is_active ? 'bg-green-500' : 'bg-gray-300'
+                            }`}
+                            title={user.is_active ? 'Active - Click to deactivate' : 'Inactive - Click to activate'}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                user.is_active ? 'translate-x-6' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 capitalize">
                           {user.auth_provider || 'email'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                          {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
+                          <span className="font-semibold text-blue-600">{user.try_on_count || 0}</span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                          {formatLastLogin(user.last_login)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <button
@@ -245,7 +347,8 @@ const ManageUsers = () => {
                           </button>
                         </td>
                       </tr>
-                    ))}
+                        );
+                      }))}
                   </tbody>
                 </table>
               </div>
@@ -368,16 +471,15 @@ const ManageUsers = () => {
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Status
+                    Password (optional)
                   </label>
-                  <select
-                    value={formData.is_active ? 'active' : 'inactive'}
-                    onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'active' })}
+                  <input
+                    type="password"
+                    value={formData.password}
+                    placeholder="Leave blank to keep current password"
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
+                  />
                 </div>
               </div>
 

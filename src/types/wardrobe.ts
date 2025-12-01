@@ -1,11 +1,10 @@
 export interface WardrobeItem {
   id: number;
   user_id: number;
-  brand_id: number;
   image_url: string;
   size: string;
   name: string;
-  type: "top" | "bottom" | "shoes";
+  type: "top" | "bottom" | "shoes" | "outfit";
   status: string;
   events: string[];
   favourite: boolean;
@@ -17,15 +16,11 @@ export interface WardrobeItem {
   price?: number | null;
   created_at?: string;
   updated_at?: string;
-  brand: {
-    id: number;
-    name: string;
-  };
+  // brand removed
 }
 
 export interface Filters {
   category: string;
-  brand: string;
   size: string;
   color: string;
   season: string;

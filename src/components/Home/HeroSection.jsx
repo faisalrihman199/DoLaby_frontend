@@ -8,18 +8,43 @@ import { IoMdHeartEmpty } from 'react-icons/io';
 import 'swiper/css';
 import 'swiper/css/effect-coverflow';
 
+// Import look images
+import look1Image from '../../assets/Home/HeroSection/look_1/look.png';
+import look2Image from '../../assets/Home/HeroSection/look_2/look.png';
+import look3Image from '../../assets/Home/HeroSection/look_3/look.png';
+import look4Image from '../../assets/Home/HeroSection/look_4/look.png';
+
+// Import individual clothing items for each look
+import look1Top from '../../assets/Home/HeroSection/look_1/top.png';
+import look1Bottom from '../../assets/Home/HeroSection/look_1/bottom.png';
+import look1Shoes from '../../assets/Home/HeroSection/look_1/shoes.png';
+
+import look2Top from '../../assets/Home/HeroSection/look_2/top.png';
+import look2Bottom from '../../assets/Home/HeroSection/look_2/bottom.png';
+import look2Shoes from '../../assets/Home/HeroSection/look_2/shoes.png';
+
+import look3Top from '../../assets/Home/HeroSection/look_3/top.png';
+import look3Bottom from '../../assets/Home/HeroSection/look_3/bottom.png';
+import look3Shoes from '../../assets/Home/HeroSection/look_3/shoes.png';
+
+import look4Top from '../../assets/Home/HeroSection/look_4/top.png';
+import look4Bottom from '../../assets/Home/HeroSection/look_4/bottom.png';
+import look4Shoes from '../../assets/Home/HeroSection/look_4/shoes.png';
+
 export default function HeroSection() {
   const initialLooks = [
-    { id: 1, image: 'src/assets/Home/HeroSection/look_1/look.png', title: 'Look 18', folder: 'look_1' },
-    { id: 2, image: 'src/assets/Home/HeroSection/look_2/look.png', title: 'Look 19', folder: 'look_2' },
-    { id: 3, image: 'src/assets/Home/HeroSection/look_3/look.png', title: 'Look 20', folder: 'look_3' },
-    { id: 4, image: 'src/assets/Home/HeroSection/look_4/look.png', title: 'Look 21', folder: 'look_4' },
+    { id: 1, image: look1Image, title: 'Look 18', folder: 'look_1', items: { top: look1Top, bottom: look1Bottom, shoes: look1Shoes } },
+    { id: 2, image: look2Image, title: 'Look 19', folder: 'look_2', items: { top: look2Top, bottom: look2Bottom, shoes: look2Shoes } },
+    { id: 3, image: look3Image, title: 'Look 20', folder: 'look_3', items: { top: look3Top, bottom: look3Bottom, shoes: look3Shoes } },
+    { id: 4, image: look4Image, title: 'Look 21', folder: 'look_4', items: { top: look4Top, bottom: look4Bottom, shoes: look4Shoes } },
   ];
 
   const [activeIndex, setActiveIndex] = useState(initialLooks.length - 1);
   const [cardAnimDir, setCardAnimDir] = useState(null);
   const [vw, setVw] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280);
+  const [isHovered, setIsHovered] = useState(false);
   const swiperRef = useRef(null);
+  const autoAdvanceRef = useRef(null);
 
   // ------- sizing presets (unchanged) -------
   function getSizing(width) {
@@ -38,6 +63,34 @@ export default function HeroSection() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  // Auto-advance effect
+  useEffect(() => {
+    if (!isHovered && swiperRef.current) {
+      autoAdvanceRef.current = setInterval(() => {
+        if (swiperRef.current?.swiper) {
+          const swiper = swiperRef.current.swiper;
+          // If we're at the last slide, go to first, otherwise go to next
+          if (swiper.activeIndex === initialLooks.length - 1) {
+            swiper.slideTo(0);
+          } else {
+            swiper.slideNext();
+          }
+        }
+      }, 3000);
+    } else {
+      if (autoAdvanceRef.current) {
+        clearInterval(autoAdvanceRef.current);
+        autoAdvanceRef.current = null;
+      }
+    }
+
+    return () => {
+      if (autoAdvanceRef.current) {
+        clearInterval(autoAdvanceRef.current);
+      }
+    };
+  }, [isHovered]);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
 
@@ -70,13 +123,23 @@ export default function HeroSection() {
         <div className="w-[100%] flex flex-row items-end justify-center w-full px-3 sm:px-4 md:px-4 lg:px-4 pb-8 sm:pb-12 lg:pb-16 gap-x-4 sm:gap-x-6 lg:gap-x-8">
 
           <div className="hidden sm:flex flex-1 items-end justify-start">
-            <WearTryOn />
+            <WearTryOn onStartTryOn={() => {
+              const el = typeof document !== 'undefined' ? document.getElementById('try-on') : null;
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              } else {
+                // fallback: jump to anchor
+                window.location.hash = '#try-on';
+              }
+            }} />
           </div>
 
           <div className="md:w-[60%] sm:w-[100%] flex items-end justify-center overflow-visible">
             <div
               className="relative flex flex-row items-center justify-center gap-0 overflow-visible"
               style={{ minHeight: ACTIVE_H + 20 }}
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
             >
               <Swiper
                 ref={swiperRef}
@@ -96,7 +159,7 @@ export default function HeroSection() {
                 speed={TRANSITION_TIME}
                 modules={[EffectCoverflow, Keyboard]}
                 onSlideChange={handleSlideChange}
-                style={{ overflow: isMobile?'hidden':'visible', width: '100%' }}
+                style={{ overflow: 'hidden', width: '100%' }}
               >
                 {initialLooks.map((look, idx) => {
                   const n = initialLooks.length;
@@ -134,10 +197,13 @@ export default function HeroSection() {
 
           {/* RIGHT: Formal Look panel (col-span-12 on tablet, 3 on desktop) */}
           {activeFolder && (() => {
+            const activeLook = initialLooks.find(look => look.folder === activeFolder);
+            if (!activeLook || !activeLook.items) return null;
+            
             const parts = [
-              { label: 'Top', src: `src/assets/Home/HeroSection/${activeFolder}/top.png`, brand: 'H&M', price: '120€' },
-              { label: 'Bottom', src: `src/assets/Home/HeroSection/${activeFolder}/bottom.png` },
-              { label: 'Shoes', src: `src/assets/Home/HeroSection/${activeFolder}/shoes.png` },
+              { label: 'Top', src: activeLook.items.top, brand: 'H&M', price: '120€' },
+              { label: 'Bottom', src: activeLook.items.bottom },
+              { label: 'Shoes', src: activeLook.items.shoes },
             ];
 
             let animStyle = {};
@@ -160,13 +226,13 @@ export default function HeroSection() {
                     className="relative my-3 w-50 flex flex-col items-start rounded-2xl bg-[#F2F8FD] shadow-sm p-4 md:p-5 border border-sky-900/5"
                   >
                     {/* Heart */}
-                    <button
+                    {/* <button
                       type="button"
                       className="absolute right-4 top-4 inline-flex items-center justify-center text-sky-900/70 hover:scale-110 transition-transform"
                       aria-label="favorite"
                     >
                       <IoMdHeartEmpty className="w-6 h-6" />
-                    </button>
+                    </button> */}
 
                     {/* Content row: image left, price/brand right (if provided) */}
                     <div className="flex items-center gap-4 md:gap-5">
@@ -197,10 +263,13 @@ export default function HeroSection() {
         {/* Mobile parts row */}
         <div className="md:hidden mt-6 flex justify-center">
           {activeFolder && (() => {
+            const activeLook = initialLooks.find(look => look.folder === activeFolder);
+            if (!activeLook || !activeLook.items) return null;
+            
             const parts = [
-              { label: 'Top', src: `src/assets/Home/HeroSection/${activeFolder}/top.png` },
-              { label: 'Bottom', src: `src/assets/Home/HeroSection/${activeFolder}/bottom.png` },
-              { label: 'Shoes', src: `src/assets/Home/HeroSection/${activeFolder}/shoes.png` },
+              { label: 'Top', src: activeLook.items.top },
+              { label: 'Bottom', src: activeLook.items.bottom },
+              { label: 'Shoes', src: activeLook.items.shoes },
             ];
             return (
               <div className="flex gap-3">

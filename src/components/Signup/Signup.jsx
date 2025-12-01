@@ -218,7 +218,8 @@ const Signup = () => {
   }
 
   // Fetch user profile from /auth/profile and update AppContext
-  const fetchUserProfile = async () => {
+  // fetchUserProfile optionally accepts a redirectPath to navigate after successful fetch
+  const fetchUserProfile = async (redirectPath = '/') => {
     setProfileCompleting(true)
     setProfileCompletionError(null)
 
@@ -262,9 +263,9 @@ const Signup = () => {
         // Clear all signup-related data
         clearSignupData()
 
-        // Navigate to home after a brief delay
+        // Navigate to the provided redirect path after a brief delay
         setTimeout(() => {
-          navigate('/', { replace: true })
+          navigate(redirectPath, { replace: true })
         }, 2000)
       } else {
         throw new Error('Unable to retrieve user profile')
@@ -274,10 +275,10 @@ const Signup = () => {
       const message = error?.response?.data?.message || error.message || 'Failed to complete profile setup'
       setProfileCompletionError(message)
       
-      // Even if profile fetch fails, clear signup data and navigate
+      // Even if profile fetch fails, clear signup data and navigate to redirectPath
       clearSignupData()
       setTimeout(() => {
-        navigate('/', { replace: true })
+        navigate(redirectPath, { replace: true })
       }, 2000)
     } finally {
       setProfileCompleting(false)
@@ -285,8 +286,9 @@ const Signup = () => {
   }
 
   // Handle profile completion (Step 6)
-  const handleProfileCompletion = () => {
-    fetchUserProfile()
+  const handleProfileCompletion = async () => {
+    // After completing profile, redirect user to the Wardrobe page
+    await fetchUserProfile('/wardrobe')
   }
 
   const handleStep2 = async (data) => {

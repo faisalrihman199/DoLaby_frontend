@@ -8,11 +8,12 @@ interface WardrobeFiltersProps {
 
 const WardrobeFilters = ({ filters, onFiltersChange, wardrobeItems }: WardrobeFiltersProps) => {
   // Extract unique values from wardrobe items
-  const uniqueBrands = Array.from(new Set(wardrobeItems.map(item => item.brand.name))).sort();
-  const uniqueCategories = Array.from(new Set(wardrobeItems.map(item => item.category))).sort();
-  const uniqueSeasons = Array.from(new Set(wardrobeItems.map(item => item.season))).sort();
-  const uniqueColors = Array.from(new Set(wardrobeItems.map(item => item.color))).sort();
-  const uniqueSizes = Array.from(new Set(wardrobeItems.map(item => item.size))).sort();
+  const getUnique = (arr: Array<string | null | undefined>) =>
+    Array.from(new Set(arr.filter((v): v is string => !!v))).sort();
+  const uniqueCategories = getUnique(wardrobeItems.map(item => item.category));
+  const uniqueSeasons = getUnique(wardrobeItems.map(item => item.season));
+  const uniqueColors = getUnique(wardrobeItems.map(item => item.color));
+  const uniqueSizes = getUnique(wardrobeItems.map(item => item.size));
 
   const handleFilterChange = (key: keyof Filters, value: string) => {
     onFiltersChange({
@@ -25,19 +26,7 @@ const WardrobeFilters = ({ filters, onFiltersChange, wardrobeItems }: WardrobeFi
       <div className="flex flex-wrap items-center gap-4">
         <span className="font-medium text-color-primary font-kanit  text-foreground">Filter</span>
         
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-muted-foreground font-kanit ">Brands</label>
-          <select 
-            className="px-2 py-0 border border-[#035477] rounded text-sm bg-[#F6F6F6]"
-            value={filters.brand}
-            onChange={(e) => handleFilterChange('brand', e.target.value)}
-          >
-            <option value="">All</option>
-            {uniqueBrands.map(brand => (
-              <option key={brand} value={brand}>{brand}</option>
-            ))}
-          </select>
-        </div>
+        {/* Brands removed */}
 
         <div className="flex items-center gap-2">
           <label className="text-sm text-muted-foreground font-kanit">Category</label>

@@ -17,7 +17,7 @@ export default function Navbar() {
     <>
       {/* Desktop */}
       <nav className="hidden md:flex items-center justify-between py-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1">
           <h1 className="text-2xl font-cursive text-color-primary font-bold" style={{ fontFamily: 'Kaushan Script' }}>
             Dolaby
           </h1>
@@ -27,42 +27,44 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center space-x-8">
-          <Link to="/" className="text-color-primary font-semibold hover:opacity-90 transition-colors">
+          <Link to="/" className="text-color-primary font-semibold hover:opacity-90 transition-colors text-md">
             Home
           </Link>
           {loggedIn && (
             <>
-              <Link to="/wardrobe" className="text-color-primary font-semibold hover:opacity-90 transition-colors">
+              <Link to="/wardrobe" className="text-color-primary font-semibold hover:opacity-90 transition-colors text-md">
                 Wardrobe
               </Link>
-              <Link to="/favorites" className="text-color-primary font-semibold hover:opacity-90 transition-colors">
+              <Link to="/favorites" className="text-color-primary font-semibold hover:opacity-90 transition-colors text-md">
                 Favorites
+              </Link>
+              <Link to="/profile" className="text-color-primary font-semibold hover:opacity-90 transition-colors text-md">
+                Profile
               </Link>
             </>
           )}
 
           {loggedIn ? (
             <div className="flex items-center space-x-4 ml-4">
-              <button className="text-color-primary font-semibold hover:opacity-90 transition-colors" onClick={() => { logout(); navigate('/'); }}>
+              <button className="text-color-primary font-semibold text-md hover:opacity-90 transition-colors" onClick={() => { logout(); navigate('/'); }}>
                 Log out
               </button>
-              <PiUserCircleLight className="cursor-pointer" size={28} />
-              <IoIosHeartEmpty className="cursor-pointer" size={28} />
+              <Link to="/profile">
+                <PiUserCircleLight className="cursor-pointer" size={28} />
+              </Link>
+              <Link to="/favorites">
+                <IoIosHeartEmpty className="cursor-pointer" size={28} />
+              </Link>
             </div>
           ) : (
-            isRegisterPage ? (
-              <button
-                type="button"
-                className="text-color-primary font-semibold hover:opacity-90 transition-colors"
-                onClick={() => navigate('/login')}
-              >
+            <div className="flex items-center gap-4">
+              <Link to="/login" className="text-color-primary text-md font-semibold hover:opacity-90 transition-colors">
                 Login
-              </button>
-            ) : (
-              <Link to="/signup" className="text-color-primary font-semibold hover:opacity-90 transition-colors">
+              </Link>
+              <Link to="/signup" className="text-color-primary text-md font-semibold hover:opacity-90 transition-colors">
                 Register
               </Link>
-            )
+            </div>
           )}
         </div>
       </nav>
@@ -122,34 +124,36 @@ export default function Navbar() {
                     <Link to="/favorites" className="block text-lg text-color-primary font-semibold hover:opacity-90 transition-colors py-2" onClick={() => setIsMobileMenuOpen(false)}>
                       Favorites
                     </Link>
+                    <Link to="/profile" className="block text-lg text-color-primary font-semibold hover:opacity-90 transition-colors py-2" onClick={() => setIsMobileMenuOpen(false)}>
+                      Profile
+                    </Link>
                   </>
                 )}
 
                 {loggedIn ? (
                   <div className="flex items-center space-x-6 pt-6 border-t border-[#035477]">
-                    <div className="flex items-center space-x-2">
+                    <Link to="/profile" className="flex items-center space-x-2" onClick={() => setIsMobileMenuOpen(false)}>
                       <svg className="w-6 h-6 text-color-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
                       <span className="text-color-primary font-medium">Profile</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
+                    </Link>
+                    <Link to="/favorites" className="flex items-center space-x-2" onClick={() => setIsMobileMenuOpen(false)}>
                       <svg className="w-6 h-6 text-color-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                       </svg>
                       <span className="text-color-primary font-medium">Favorites</span>
-                    </div>
+                    </Link>
                   </div>
                 ) : (
-                  isRegisterPage ? (
-                    <button className="block text-lg text-color-primary font-semibold hover:opacity-90 transition-colors pt-6 border-t border-[#035477] w-full text-left" onClick={() => { setIsMobileMenuOpen(false); navigate('/login'); }}>
+                  <div className="pt-6 border-t border-[#035477] space-y-2">
+                    <button className="block w-full text-left text-lg text-color-primary font-semibold hover:opacity-90 transition-colors" onClick={() => { setIsMobileMenuOpen(false); navigate('/login'); }}>
                       Login
                     </button>
-                  ) : (
-                    <Link to="/signup" className="block text-lg text-color-primary font-semibold hover:opacity-90 transition-colors pt-6 border-t border-[#035477]" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Link to="/signup" className="block text-lg text-color-primary font-semibold hover:opacity-90 transition-colors" onClick={() => setIsMobileMenuOpen(false)}>
                       Register
                     </Link>
-                  )
+                  </div>
                 )}
               </div>
             </div>

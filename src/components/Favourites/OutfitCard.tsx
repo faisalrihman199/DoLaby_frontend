@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Heart } from 'lucide-react';
 import { WardrobeItem } from '../../types/wardrobe';
+import ImageModal from './ImageModal';
 
 interface OutfitCardProps {
   item: WardrobeItem;
@@ -8,6 +9,8 @@ interface OutfitCardProps {
 }
 
 const OutfitCard = ({ item, onToggleFavorite }: OutfitCardProps) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  
   // Calculate days since last use (placeholder logic - you might want to track this in API)
   const getLastUsedDays = () => {
     if (item.updated_at) {
@@ -22,16 +25,17 @@ const OutfitCard = ({ item, onToggleFavorite }: OutfitCardProps) => {
 
   const lastUsedDays = getLastUsedDays();
   return (
-    <div className="flex flex-col items-center">
-      {/* Main Card */}
-      <div
-        className="relative rounded-lg p-4 pb-16 flex flex-col items-center shadow-lg border border-blue-200"
-        style={{
-          width: '160px',
-          height: '200px',
-          background: 'linear-gradient(180deg, #E3ECF6 0%, #DDE8F1 27.4%, #E9F0F5 68.27%, #EEF2F8 100%)'
-        }}
-      >
+    <>
+      <div className="flex flex-col items-center">
+        {/* Main Card */}
+        <div
+          className="relative rounded-lg p-4 pb-16 flex flex-col items-center shadow-lg border border-blue-200"
+          style={{
+            width: '160px',
+            height: '200px',
+            background: 'linear-gradient(180deg, #E3ECF6 0%, #DDE8F1 27.4%, #E9F0F5 68.27%, #EEF2F8 100%)'
+          }}
+        >
         
         {/* Favorite Toggle - Top Left */}
         {onToggleFavorite && (
@@ -57,11 +61,14 @@ const OutfitCard = ({ item, onToggleFavorite }: OutfitCardProps) => {
         )}
 
         {/* Product Image */}
-        <div className="w-full h-[180px] flex justify-center items-center">
+        <div 
+          className="w-full h-full flex justify-center items-center cursor-pointer hover:opacity-90 transition-opacity overflow-hidden"
+          onClick={() => setIsModalOpen(true)}
+        >
           <img
             src={item.image_url}
             alt={item.name}
-            className="w-full h-[180px] object-contain p-2"
+            className={`w-full h-full p-1 ${item.type === 'outfit' ? 'object-cover' : 'object-contain'}`}
             onError={(e) => (e.currentTarget.style.display = 'none')}
           />
         </div>
@@ -75,9 +82,17 @@ const OutfitCard = ({ item, onToggleFavorite }: OutfitCardProps) => {
       {/* Label - Below Card */}
       <div className="mt-1 text-start">
         <h3 className="text-[15px] font-kanit px-2 text-color-primary">{item.name}</h3>
-        <p className="text-[12px] font-kanit px-2 text-gray-600">{item.brand.name}</p>
       </div>
     </div>
+    
+    {/* Image Modal */}
+    <ImageModal
+      isOpen={isModalOpen}
+      onClose={() => setIsModalOpen(false)}
+      imageUrl={item.image_url}
+      imageName={item.name}
+    />
+  </>
   );
 };
 

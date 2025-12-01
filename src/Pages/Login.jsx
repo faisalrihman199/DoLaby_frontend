@@ -5,12 +5,14 @@ import { FcGoogle } from 'react-icons/fc';
 import { RiFacebookCircleLine } from 'react-icons/ri';
 import { useAPI } from '../contexts/ApiContext'
 import { useAPP } from '../contexts/AppContext'
+import { useToast } from '../components/Toast/ToastContainer'
 
 export default function Login() {
   const navigate = useNavigate();
   const api = useAPI()
   const [searchParams] = useSearchParams()
   const { login } = useAPP()
+  const { showSuccess, showError } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
@@ -70,16 +72,18 @@ export default function Login() {
       // Check if user is admin and redirect accordingly
       const userRole = userFromBody?.role || userFromBody?.user_type;
       if (userRole === 'admin') {
+        showSuccess('Welcome back, Admin!');
         navigate('/admin/dashboard', { replace: true });
         return;
       }
 
       // navigate to return path if provided, else home
+      showSuccess('Login successful!');
       const returnTo = searchParams.get('next') || '/';
       navigate(returnTo, { replace: true });
     } catch (err) {
-      console.error('Login failed', err);
       const serverMsg = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Login failed';
+      showError(serverMsg);
       setError(serverMsg);
     } finally {
       setLoading(false);
@@ -142,9 +146,10 @@ export default function Login() {
         }
 
         // replace URL to remove token from address bar and navigate home
+        showSuccess('Login successful!');
         try { navigate('/', { replace: true }) } catch (e) { /* ignore */ }
       } catch (err) {
-        console.error('Error during auto-login:', err)
+        showError('Auto-login failed. Please try logging in manually.');
       } finally {
         setAutoLoading(false);
       }
@@ -153,6 +158,25 @@ export default function Login() {
     finishAutoLogin()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Show any `?message=` passed in the URL as a toast (and remove it from URL)
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const msg = params.get('message');
+      if (msg) {
+        const decoded = decodeURIComponent(msg);
+        showError(decoded);
+        setError(decoded);
+        params.delete('message');
+        const newSearch = params.toString();
+        const newUrl = `${window.location.pathname}${newSearch ? `?${newSearch}` : ''}`;
+        window.history.replaceState({}, '', newUrl);
+      }
+    } catch (e) {
+      // safe no-op
+    }
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 via-white to-blue-50 px-4 py-12">
@@ -211,7 +235,7 @@ export default function Login() {
                 <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="h-4 w-4 rounded border-blue-200" />
                 Remember me
               </label>
-              <Link to="#" className="text-sm font-medium text-blue-900 hover:underline">Forgot password?</Link>
+              <Link to="/forgot-password" className="text-sm font-medium text-blue-900 hover:underline">Forgot password?</Link>
             </div>
 
             {error && <div className="text-sm text-red-600">{error}</div>}
@@ -254,10 +278,13 @@ export default function Login() {
 
                         // if nothing useful, show error (include server message if present)
                         const serverMsg = res?.message || res?.data?.message || null
-                        setError(serverMsg || 'Could not start Google OAuth flow.')
+                        const errorMsg = serverMsg || 'Could not start Google OAuth flow.';
+                        showError(errorMsg);
+                        setError(errorMsg);
                       } catch (err) {
-                        console.error(err)
-                        setError(err?.response?.data?.message || err.message || 'OAuth request failed')
+                        const errorMsg = err?.response?.data?.message || err.message || 'OAuth request failed';
+                        showError(errorMsg);
+                        setError(errorMsg);
                       }
                     }} className="w-full cursor-pointer rounded-lg border border-blue-100 bg-white px-4 py-3 text-sm text-blue-700 hover:bg-blue-50 flex items-center justify-center gap-3">
                     <FcGoogle className="text-3xl" />
@@ -283,10 +310,13 @@ export default function Login() {
                         }
 
                         const serverMsg = res?.message || res?.data?.message || null
-                        setError(serverMsg || 'Could not start Facebook OAuth flow.')
+                        const errorMsg = serverMsg || 'Could not start Facebook OAuth flow.';
+                        showError(errorMsg);
+                        setError(errorMsg);
                       } catch (err) {
-                        console.error(err)
-                        setError(err?.response?.data?.message || err.message || 'OAuth request failed')
+                        const errorMsg = err?.response?.data?.message || err.message || 'OAuth request failed';
+                        showError(errorMsg);
+                        setError(errorMsg);
                       }
                     }} className="w-full cursor-pointer rounded-lg border border-blue-100 bg-white px-4 py-3 text-sm text-blue-700 hover:bg-blue-50 flex items-center justify-center gap-3">
                     <RiFacebookCircleLine className="text-3xl text-blue-700" />

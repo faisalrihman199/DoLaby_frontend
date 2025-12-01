@@ -79,7 +79,8 @@ const Step3Planning = ({ register, errors, watch, nextStep, prevStep, handleSubm
       )}
 
       <div className="text-center mb-8">
-        <p className="text-gray-600">Set up your schedule preferences</p>
+          <p className="text-gray-600">Set up your schedule preferences</p>
+          <p className="text-sm text-gray-500 mt-2">This step is <span className="font-semibold">optional</span>. Click <span className="font-semibold">Next</span> to skip without saving.</p>
       </div>
 
       {/* Calendar Section */}
@@ -289,12 +290,22 @@ const Step3Planning = ({ register, errors, watch, nextStep, prevStep, handleSubm
         >
           Back
         </button>
+        {/* Primary Next: submit the form (validate + potentially send to backend) */}
         <button
           type="submit"
           disabled={isLoading}
           className={`px-8 py-3 rounded-lg font-semibold transition-colors ${isLoading ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'}`}
         >
           {isLoading ? 'Processing...' : 'Next'}
+        </button>
+
+        {/* Skip: advance without validation or backend call */}
+        <button
+          type="button"
+          onClick={() => nextStep()}
+          className="px-8 py-3 rounded-lg font-semibold transition-colors bg-gray-300 text-gray-700 hover:bg-gray-400"
+        >
+          Skip
         </button>
         <button
           type="button"

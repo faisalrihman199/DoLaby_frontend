@@ -9,9 +9,11 @@ interface WardrobeGridProps {
   activeTab: string;
   wardrobeItems: WardrobeItem[];
   onToggleFavorite?: (id: number) => void;
+  onDelete?: (id: number) => void;
+  onEdit?: (id: number) => void;
 }
 
-const WardrobeGrid = ({ selectedItems, onItemSelect, activeTab, wardrobeItems, onToggleFavorite }: WardrobeGridProps) => {
+const WardrobeGrid = ({ selectedItems, onItemSelect, activeTab, wardrobeItems, onToggleFavorite, onDelete, onEdit }: WardrobeGridProps) => {
   const navigate = useNavigate();
   const handleAddNewCloth = () => {
     navigate("/add-cloth");
@@ -27,17 +29,18 @@ const WardrobeGrid = ({ selectedItems, onItemSelect, activeTab, wardrobeItems, o
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
       {filteredItems.map((item) => (
-        <ClothingCard
+          <ClothingCard
           key={item.id}
           id={item.id}
           image={item.image_url}
-          brand={item.brand.name}
           category={item.category}
           favorite={item.favourite}
           featured={false} // You can add a featured field to API if needed
           isSelected={selectedItems.includes(item.id)}
           onSelect={() => onItemSelect(item.id)}
           onToggleFavorite={onToggleFavorite}
+          onDelete={onDelete}
+          onEdit={onEdit}
         />
       ))}
       

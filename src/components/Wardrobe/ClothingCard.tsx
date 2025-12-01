@@ -1,27 +1,29 @@
-import { Check, Star, Sparkles, Trash2, Heart } from "lucide-react";
+import { Check, Star, Sparkles, Trash2, Heart, Edit } from "lucide-react";
 
 interface ClothingCardProps {
   id: number;
   image: string;
-  brand: string;
   category: string;
   isSelected: boolean;
   onSelect: () => void;
   favorite?: boolean;
   featured?: boolean;
   onToggleFavorite?: (id: number) => void;
+  onDelete?: (id: number) => void;
+  onEdit?: (id: number) => void;
 }
 
 const ClothingCard = ({
   id,
   image,
-  brand,
   category,
   isSelected,
   onSelect,
   favorite,
   featured,
   onToggleFavorite,
+  onDelete,
+  onEdit,
 }: ClothingCardProps) => {
   return (
     <div
@@ -59,9 +61,28 @@ const ClothingCard = ({
       {/* Footer */}
       <div className="p-2 ">
         <div className="flex items-center justify-between mb-1">
-          <button className="text-gray-400 hover:text-gray-600">
-            <Trash2 className="w-3 h-3" />
-          </button>
+          <div className="flex gap-1">
+            <button 
+              className="text-gray-400 hover:text-blue-600 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onEdit) onEdit(id);
+              }}
+              title="Edit"
+            >
+              <Edit className="w-3 h-3" />
+            </button>
+            <button 
+              className="text-gray-400 hover:text-red-600 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onDelete) onDelete(id);
+              }}
+              title="Delete"
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+          </div>
           <div className="flex gap-1">
             {onToggleFavorite && (
               <button 
@@ -85,7 +106,6 @@ const ClothingCard = ({
           </div>
         </div>
         <p className="text-[15px] font-kanit text-color-primary">{category}</p>
-        <p className="text-[15px] font-kanit font-bold text-color-primary">{brand}</p>
       </div>
     </div>
   );

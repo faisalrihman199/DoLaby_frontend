@@ -1,20 +1,28 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { useToast } from '../components/Toast/ToastContainer';
 import FingerprintJS from '@fingerprintjs/fingerprintjs';
 import OutfitSidebar from "../components/Wardrobe/OutfitSidebar";
 import UploadSection from "../components/Wardrobe/UploadSection";
 import PreviewSection from "../components/Wardrobe/PreviewSection";
 import WardrobeFilters from "../components/Wardrobe/WardrobeFilters";
 import WardrobeGrid from "../components/Wardrobe/WardrobeGrid";
+import DeleteConfirmDialog from "../components/Wardrobe/DeleteConfirmDialog";
 import { useAPI } from "../contexts/ApiContext";
 import { WardrobeItem, Filters } from "../types/wardrobe";
 import { useAPP } from "../contexts/AppContext";
 
 const Wardrobe = () => {
   const api = useAPI();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { showSuccess, showError } = useToast();
+  
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [personImageUrl, setPersonImageUrl] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"top" | "bottom" | "shoes">("top");
+  const [activeTab, setActiveTab] = useState<"top" | "bottom" | "shoes" | "outfit">("top");
   const [wardrobeItems, setWardrobeItems] = useState<WardrobeItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,9 +31,15 @@ const Wardrobe = () => {
   const [tryOnError, setTryOnError] = useState<string | null>(null);
   const [tryOnResult, setTryOnResult] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; itemId: number | null; itemName: string }>({
+    isOpen: false,
+    itemId: null,
+    itemName: '',
+  });
+  const [deleting, setDeleting] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [filters, setFilters] = useState({
     category: "",
-    brand: "",
     size: "",
     color: "",
     season: "",
@@ -42,6 +56,7 @@ const Wardrobe = () => {
         setDeviceFingerprint(result.visitorId);
         console.log('Device fingerprint:', result.visitorId);
       } catch (err) {
+        showError('Could not generate device fingerprint');
         console.error('Error generating fingerprint:', err);
       }
     };
@@ -50,6 +65,18 @@ const Wardrobe = () => {
 
   // Fetch wardrobe items from API
   useEffect(() => {
+    // Show message passed from navigation state (e.g., after edit)
+    if (location?.state?.message) {
+      try {
+        const msg = location.state.message;
+        if (msg) showSuccess(msg);
+        // clear state by replacing history entry without message
+        navigate(location.pathname, { replace: true, state: {} });
+      } catch (e) {
+        // ignore
+      }
+    }
+
     const fetchWardrobeItems = async () => {
       setLoading(true);
       setError(null);
@@ -73,8 +100,9 @@ const Wardrobe = () => {
           setSelectedItems(autoSelected);
         }
       } catch (err: any) {
-        console.error('Error fetching wardrobe items:', err);
-        setError(err?.response?.data?.message || err?.message || 'Failed to load wardrobe items');
+        const errorMsg = err?.response?.data?.message || err?.message || 'Failed to load wardrobe items';
+        showError(errorMsg);
+        setError(errorMsg);
       } finally {
         setLoading(false);
       }
@@ -152,7 +180,6 @@ const Wardrobe = () => {
       
       return imageUrl;
     } catch (err: any) {
-      console.error('Error uploading person image:', err);
       const resp = err?.response?.data;
       if (resp?.code === 'TRY_ON_LIMIT_EXCEEDED') {
         const msg = resp?.message || 'Try-on limit exceeded.';
@@ -214,7 +241,7 @@ const Wardrobe = () => {
       // Add wardrobe item URLs
       if (selectedTop) requestBody.topUrl = selectedTop.image_url;
       if (selectedBottom) requestBody.bottomUrl = selectedBottom.image_url;
-      // intentionally do not include shoesUrl for now
+      if (selectedShoes) requestBody.shoesUrl = selectedShoes.image_url;
 
       console.log('Try-on request:', requestBody);
 
@@ -231,8 +258,8 @@ const Wardrobe = () => {
       setUploadedImage(result.url);
 
     } catch (err: any) {
-      console.error('Error performing try-on:', err);
       const errorMsg = err?.response?.data?.message || err?.message || 'Failed to perform try-on. Please try again.';
+      showError(errorMsg);
       setTryOnError(errorMsg);
     } finally {
       setTryOnLoading(false);
@@ -299,7 +326,7 @@ const Wardrobe = () => {
       });
       
     } catch (err: any) {
-      console.error('Error toggling favourite:', err);
+      showError('Failed to update favourite status');
       // Revert the optimistic update on error
       setWardrobeItems(prev => 
         prev.map(item => 
@@ -309,6 +336,116 @@ const Wardrobe = () => {
         )
       );
     }
+  };
+
+  // Handle delete item
+  const handleDeleteItem = (itemId: number) => {
+    const item = wardrobeItems.find(item => item.id === itemId);
+    if (!item) return;
+
+    setDeleteDialog({
+      isOpen: true,
+      itemId: itemId,
+      itemName: item.name || item.category || 'this item',
+    });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteDialog.itemId) return;
+
+    try {
+      setDeleting(true);
+      
+      // Call API to delete the item
+      await api.delete(`/wardrobe/${deleteDialog.itemId}`);
+      
+      // Remove from local state
+      setWardrobeItems(prev => prev.filter(item => item.id !== deleteDialog.itemId));
+      
+      // Remove from selected items if it was selected
+      setSelectedItems(prev => prev.filter(id => id !== deleteDialog.itemId));
+      
+      // Close dialog
+      setDeleteDialog({ isOpen: false, itemId: null, itemName: '' });
+      showSuccess('Item deleted successfully');
+      
+    } catch (err: any) {
+      console.error('Error deleting item:', err);
+      showError(err?.response?.data?.message || err?.message || 'Failed to delete item');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const closeDeleteDialog = () => {
+    if (!deleting) {
+      setDeleteDialog({ isOpen: false, itemId: null, itemName: '' });
+    }
+  };
+
+  // Handle save try-on result to wardrobe
+  const handleSaveTryOnResult = async (favourite: boolean) => {
+    if (!uploadedImage) {
+      showError('No try-on result to save');
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      // Save try-on result image to wardrobe
+      const formData = new FormData();
+      
+      // Fetch the image and convert to blob
+      const response = await fetch(uploadedImage);
+      const blob = await response.blob();
+      const file = new File([blob], 'try-on-result.jpg', { type: 'image/jpeg' });
+      
+      formData.append('image', file);
+      formData.append('name', 'Try-On Result');
+      formData.append('type', 'outfit'); // Save as outfit type
+      formData.append('category', 'other');
+      formData.append('size', 'M');
+      formData.append('favourite', favourite.toString());
+      formData.append('color', '');
+      formData.append('season', 'all_season');
+      formData.append('status', 'clean');
+      formData.append('events', JSON.stringify([]));
+      formData.append('notes', 'Saved from try-on');
+
+      const result = await api.post('/wardrobe', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      console.log('Try-on result saved to wardrobe:', result);
+
+      // Add to local wardrobe items
+      const newItem = result?.data || result;
+      setWardrobeItems(prev => [...prev, newItem]);
+
+      showSuccess('Try-on result saved to wardrobe!');
+      
+    } catch (err: any) {
+      console.error('Error saving try-on result:', err);
+      showError(err?.response?.data?.message || err?.message || 'Failed to save to wardrobe');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Handle edit item
+  const handleEditItem = (itemId: number) => {
+    const item = wardrobeItems.find(item => item.id === itemId);
+    if (!item) return;
+
+    // Navigate to add-cloth page with item data for editing
+    navigate('/add-cloth', {
+      state: {
+        editItem: item
+      }
+    });
   };
 
   // Get selected items for outfit sidebar
@@ -326,7 +463,6 @@ const Wardrobe = () => {
       
       // Apply filters
       if (filters.category && item.category !== filters.category) return false;
-      if (filters.brand && item.brand.name !== filters.brand) return false;
       if (filters.size && item.size !== filters.size) return false;
       if (filters.color && !item.color.toLowerCase().includes(filters.color.toLowerCase())) return false;
       if (filters.season && item.season !== filters.season) return false;
@@ -361,6 +497,8 @@ const Wardrobe = () => {
             tryOnLoading={tryOnLoading}
             tryOnError={tryOnError}
             tryOnResult={tryOnResult}
+            onSave={handleSaveTryOnResult}
+            saving={saving}
             onTryAgain={() => {
               setTryOnResult(null);
               setTryOnError(null);
@@ -419,6 +557,16 @@ const Wardrobe = () => {
             >
               Shoes
             </button>
+            <button 
+              onClick={() => setActiveTab("outfit")}
+              className={`px-6 py-2 rounded-t-lg font-medium transition-colors ${
+                activeTab === "outfit" 
+                  ? activeTabStyles 
+                  : inactiveTabStyles
+              }`}
+            >
+              Outfits
+            </button>
           </div>
 
           {loading ? (
@@ -432,10 +580,21 @@ const Wardrobe = () => {
               activeTab={activeTab}
               wardrobeItems={getFilteredItems()}
               onToggleFavorite={handleToggleFavourite}
+              onDelete={handleDeleteItem}
+              onEdit={handleEditItem}
             />
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={closeDeleteDialog}
+        onConfirm={confirmDelete}
+        itemName={deleteDialog.itemName}
+        loading={deleting}
+      />
     </div>
   );
 };

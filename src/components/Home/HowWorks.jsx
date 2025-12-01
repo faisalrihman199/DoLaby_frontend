@@ -1,6 +1,8 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export default function HowWorks() {
+  const navigate = useNavigate();
   return (
 
     <div className="max-w-7xl md:mx-5 mx-auto bg-white rounded-3xl shadow-lg p-8 md:p-12 lg:p-16">
@@ -60,7 +62,7 @@ export default function HowWorks() {
           <h4 style={{ WebkitTextStroke: "1px white" }} className="text-2xl text-outline-white md:text-3xl font-[700] font-kanit text-black mb-6">
             Want unlimited?
           </h4>
-          <button className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold text-lg md:text-xl px-8 py-4 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg">
+          <button onClick={() => navigate('/signup')} className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold text-lg md:text-xl px-8 py-4 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg">
             Register Now
           </button>
         </div>

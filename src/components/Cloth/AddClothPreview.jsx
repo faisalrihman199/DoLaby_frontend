@@ -22,7 +22,6 @@ export default function AddClothPreview({ data }) {
     title = "White Shirts casual",
     imageUrl = null,
     size = "XL",
-    brand = "H&M",
     category = "Shirts",
     status = "Clean",
     events = ["Summer", "Beach", "casual"],
@@ -47,6 +46,13 @@ export default function AddClothPreview({ data }) {
 
           {/* Top status line */}
           <div className="text-black font-[400] text-[28px] mb-2 ">Uploaded</div>
+
+          {/* Saved message (shown after successful save) */}
+          {state.saved && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded">
+              {state.savedMessage || 'Saved successfully'}
+            </div>
+          )}
 
           {/* Image preview box - compact */}
           <div className="w-full rounded-md border border-[#2b4966] p-3 bg-white/50 mb-4">
@@ -92,9 +98,6 @@ export default function AddClothPreview({ data }) {
                 ))}
               </div>
             </div>
-
-            {/* Brand */}
-            <CompactRow label="Brand" value={brand} />
 
             {/* Category */}
             <CompactRow label="Category" value={category} />
@@ -150,7 +153,7 @@ function CompactRow({ label, value }) {
       <div className="min-w-24 sm:min-w-28 text-base sm:text-lg font-bold">
         {label}
       </div>
-      <div className="text-base sm:text-lg ">{value}</div>
+      <div className="text-base sm:text-lg ">{value || '—'}</div>
     </div>
   );
 }

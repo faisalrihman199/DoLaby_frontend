@@ -77,29 +77,29 @@ const UploadSection = ({ onImageUpload, uploading = false }: UploadSectionProps)
           Upload Photo</h3>
       </div>
       <div
-        className={`w-full max-w-sm rounded-lg p-8 py-4 flex flex-col items-center justify-center transition-colors ${isDragging ? "border-primary bg-accent" : ""
+        className={`relative mt-6 w-full overflow-hidden rounded-2xl bg-white/60 cursor-pointer transition-colors ${isDragging ? "border-primary bg-accent" : ""
           } ${uploading ? 'opacity-50' : ''}`}
+        style={{ aspectRatio: '9 / 16', height: '450px', maxWidth: '280px', margin: '0 auto' }}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
         {uploading ? (
-          <>
-            <div className="animate-spin rounded-full h-36 w-36 border-b-4 border-blue-900"></div>
-            <p className="mt-4 text-xl kantumruy text-blue-900">Uploading...</p>
-          </>
+          <div className="flex h-full flex-col items-center justify-center">
+            <div className="animate-spin rounded-full h-24 w-24 border-b-4 border-blue-900"></div>
+            <p className="mt-4 w-full text-2xl text-center px-4 kantumruy text-blue-900">Uploading...</p>
+          </div>
         ) : preview ? (
-          <>
-            <img src={preview} alt="Preview" className="h-80 w-auto object-contain rounded-lg" />
-           
-          </>
+          <div className="w-full h-full flex items-center justify-center bg-white p-2">
+            <img src={preview} alt="Preview" className="w-full h-full object-contain rounded-lg" />
+          </div>
         ) : (
-          <>
-            <CameraIcon className="h-36 w-36 text-blue-900" />
+          <div className="flex h-full flex-col items-center justify-center">
+            <CameraIcon className="h-24 w-24 text-blue-900" />
             <p className="mt-2 w-full text-center text-3xl kantumruy text-blue-900/50">Click to upload
-
+              <br />
               or drag photo here</p>
-          </>
+          </div>
         )}
       </div>
 

@@ -6,9 +6,11 @@ interface PreviewSectionProps {
   tryOnError?: string | null;
   tryOnResult?: any;
   onTryAgain?: () => void;
+  onSave?: (favourite: boolean) => void;
+  saving?: boolean;
 }
 
-const PreviewSection = ({ uploadedImage, tryOnLoading = false, tryOnError = null, tryOnResult = null, onTryAgain }: PreviewSectionProps) => {
+const PreviewSection = ({ uploadedImage, tryOnLoading = false, tryOnError = null, tryOnResult = null, onTryAgain, onSave, saving = false }: PreviewSectionProps) => {
   return (
     <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-blue-100">
       <div className="mb-3 flex items-center gap-3 justify-center">
@@ -19,7 +21,7 @@ const PreviewSection = ({ uploadedImage, tryOnLoading = false, tryOnError = null
 
       <div
         className="relative mt-6 w-full overflow-hidden rounded-2xl border-2 border-dashed border-blue-200 bg-white/60"
-        style={{ aspectRatio: '9 / 16', minHeight: 280, maxWidth: 280, margin: '0 auto' }}
+        style={{ aspectRatio: '9 / 16', height: '450px', maxWidth: '280px', margin: '0 auto' }}
       >
         {tryOnLoading ? (
           <div className="flex h-full flex-col items-center justify-center">
@@ -37,7 +39,7 @@ const PreviewSection = ({ uploadedImage, tryOnLoading = false, tryOnError = null
               <img
                 src={uploadedImage}
                 alt="Try-on result"
-                className="w-50 h-100"
+                className="w-full h-full object-cover rounded-lg"
                 style={{ filter: 'drop-shadow(0 6px 8px rgba(0,0,0,0.12))' }}
               />
 
@@ -88,11 +90,24 @@ const PreviewSection = ({ uploadedImage, tryOnLoading = false, tryOnError = null
         )}
       </div>
 
-      {!tryOnResult && !tryOnLoading && uploadedImage && (
-        <div className="mt-3 flex justify-center">
-          <button className="mt-6 px-8 py-2 bg-white border-2 border-blue-400 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-medium flex items-center gap-2">
-            <Heart className="w-5 h-5" />
-            Save
+      {!tryOnLoading && uploadedImage && onSave && (
+        <div className="mt-4 flex justify-center">
+          <button 
+            onClick={() => onSave(true)}
+            disabled={saving}
+            className="px-8 py-2.5 bg-[#035477] text-white rounded-lg hover:bg-[#02405e] transition-colors font-medium kantumruy flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+          >
+            {saving ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                Saving...
+              </>
+            ) : (
+              <>
+                <Heart className="w-5 h-5" fill="currentColor" />
+                Save
+              </>
+            )}
           </button>
         </div>
       )}

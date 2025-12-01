@@ -1,4 +1,4 @@
-export default function WearTryOn() {
+export default function WearTryOn({ onStartTryOn }) {
     return (
         <div
             className="hidden md:flex h-[80%] col-span-3 flex-col justify-between mb-8 md:mb-0"
@@ -40,6 +40,7 @@ export default function WearTryOn() {
             </div>
             </div>
             <button
+                onClick={() => { if (typeof onStartTryOn === 'function') onStartTryOn(); }}
                 className="w-[255px] h-[49px] self-center ml-16 bg-orange-500 hover:bg-orange-600 text-white font-normal px-8 py-2 rounded-lg transition-all duration-300 shadow-lg mt-auto"
                 style={{
                     fontFamily: 'Kanit',

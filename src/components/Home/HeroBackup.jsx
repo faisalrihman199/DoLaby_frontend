@@ -3,12 +3,35 @@ import Weather from './Weather';
 import WearTryOn from './WaerTryOn';
 import { IoMdHeartEmpty } from 'react-icons/io';
 
+// Import look images
+import look1Image from '../../assets/Home/HeroSection/look_1/look.png';
+import look2Image from '../../assets/Home/HeroSection/look_2/look.png';
+import look3Image from '../../assets/Home/HeroSection/look_3/look.png';
+import look4Image from '../../assets/Home/HeroSection/look_4/look.png';
+
+// Import individual clothing items for each look
+import look1Top from '../../assets/Home/HeroSection/look_1/top.png';
+import look1Bottom from '../../assets/Home/HeroSection/look_1/bottom.png';
+import look1Shoes from '../../assets/Home/HeroSection/look_1/shoes.png';
+
+import look2Top from '../../assets/Home/HeroSection/look_2/top.png';
+import look2Bottom from '../../assets/Home/HeroSection/look_2/bottom.png';
+import look2Shoes from '../../assets/Home/HeroSection/look_2/shoes.png';
+
+import look3Top from '../../assets/Home/HeroSection/look_3/top.png';
+import look3Bottom from '../../assets/Home/HeroSection/look_3/bottom.png';
+import look3Shoes from '../../assets/Home/HeroSection/look_3/shoes.png';
+
+import look4Top from '../../assets/Home/HeroSection/look_4/top.png';
+import look4Bottom from '../../assets/Home/HeroSection/look_4/bottom.png';
+import look4Shoes from '../../assets/Home/HeroSection/look_4/shoes.png';
+
 export default function HeroSection() {
   const initialLooks = [
-    { id: 1, image: 'src/assets/Home/HeroSection/look_1/look.png', title: 'Look 18', folder: 'look_1' },
-    { id: 2, image: 'src/assets/Home/HeroSection/look_2/look.png', title: 'Look 19', folder: 'look_2' },
-    { id: 3, image: 'src/assets/Home/HeroSection/look_3/look.png', title: 'Look 20', folder: 'look_3' },
-    { id: 4, image: 'src/assets/Home/HeroSection/look_4/look.png', title: 'Look 21', folder: 'look_4' },
+    { id: 1, image: look1Image, title: 'Look 18', folder: 'look_1', items: { top: look1Top, bottom: look1Bottom, shoes: look1Shoes } },
+    { id: 2, image: look2Image, title: 'Look 19', folder: 'look_2', items: { top: look2Top, bottom: look2Bottom, shoes: look2Shoes } },
+    { id: 3, image: look3Image, title: 'Look 20', folder: 'look_3', items: { top: look3Top, bottom: look3Bottom, shoes: look3Shoes } },
+    { id: 4, image: look4Image, title: 'Look 21', folder: 'look_4', items: { top: look4Top, bottom: look4Bottom, shoes: look4Shoes } },
   ];
 
   const [looks, setLooks] = useState(initialLooks);
@@ -289,16 +312,16 @@ export default function HeroSection() {
         <div className="hidden md:flex flex-1 py-2 pb-8 flex-col gap-4 px-4 items-end justify-center border border-[#0365A2] rounded-lg ">
           {(() => {
             const activeImage = looks[looks.length - 1]?.image;
-            let folder = null;
+            let activeLook = null;
             for (const look of initialLooks) {
-              if (look.image === activeImage) { folder = look.folder; break; }
+              if (look.image === activeImage) { activeLook = look; break; }
             }
-            if (!folder) return null;
+            if (!activeLook || !activeLook.items) return null;
 
             const parts = [
-              { label: 'Top', src: `src/assets/Home/HeroSection/${folder}/top.png` },
-              { label: 'Bottom', src: `src/assets/Home/HeroSection/${folder}/bottom.png` },
-              { label: 'Shoes', src: `src/assets/Home/HeroSection/${folder}/shoes.png` },
+              { label: 'Top', src: activeLook.items.top },
+              { label: 'Bottom', src: activeLook.items.bottom },
+              { label: 'Shoes', src: activeLook.items.shoes },
             ];
 
             let animStyle = {};
@@ -348,15 +371,15 @@ export default function HeroSection() {
       <div className="flex md:hidden col-span-12 w-full justify-center mt-4 sm:mt-6">
         {(() => {
           const activeImage = looks[looks.length - 1]?.image;
-          let folder = null;
+          let activeLook = null;
           for (const look of initialLooks) {
-            if (look.image === activeImage) { folder = look.folder; break; }
+            if (look.image === activeImage) { activeLook = look; break; }
           }
-          if (!folder) return null;
+          if (!activeLook || !activeLook.items) return null;
           const parts = [
-            { label: 'Top', src: `src/assets/Home/HeroSection/${folder}/top.png` },
-            { label: 'Bottom', src: `src/assets/Home/HeroSection/${folder}/bottom.png` },
-            { label: 'Shoes', src: `src/assets/Home/HeroSection/${folder}/shoes.png` },
+            { label: 'Top', src: activeLook.items.top },
+            { label: 'Bottom', src: activeLook.items.bottom },
+            { label: 'Shoes', src: activeLook.items.shoes },
           ];
           return (
             <div className="flex flex-row gap-3 sm:gap-4 w-full items-center justify-center">
