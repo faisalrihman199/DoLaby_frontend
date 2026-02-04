@@ -240,6 +240,7 @@ const ManageUsers = () => {
                       <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Avatar</th>
                       <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Name</th>
                       <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Email</th>
+                      <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Country</th>
                       <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Role</th>
                       <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
                       <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Provider</th>
@@ -251,7 +252,7 @@ const ManageUsers = () => {
                   <tbody className="divide-y divide-gray-200">
                     {filteredUsers.length === 0 ? (
                       <tr>
-                        <td colSpan="9" className="px-6 py-12 text-center">
+                        <td colSpan="10" className="px-6 py-12 text-center">
                           <div className="flex flex-col items-center justify-center">
                             <MdPeople className="w-16 h-16 text-gray-300 mb-4" />
                             <p className="text-gray-500 text-lg font-medium">No users found</p>
@@ -280,6 +281,13 @@ const ManageUsers = () => {
                           return `${dateStr} ${timeStr}`;
                         };
 
+                        // Get country from user's addresses (primary first)
+                        const getCountry = (u) => {
+                          if (!u || !Array.isArray(u.addresses) || u.addresses.length === 0) return '—';
+                          const primary = u.addresses.find(a => a.is_primary) || u.addresses[0];
+                          return primary?.country || '—';
+                        };
+
                         return (
                       <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -297,6 +305,9 @@ const ManageUsers = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{user.email}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                          {getCountry(user)}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
                             user.role === 'admin' 

@@ -11,17 +11,19 @@ import { TopIcon, BottomIcon, ShoesIcon, SelectIcon } from "./icons/Icons";
  * 
  * ImgItem = { id: string; name: string; src: string }  // src is an image URL (png/jpg/svg/dataURI)
  */
-export default function ChooseOutfitStep({ onTabChange, onDropItem, onImageUpload, onTryOn, gallery }) {
+export default function ChooseOutfitStep({ onTabChange, onDropItem, onImageUpload, onTryOn, gallery, uploadingStates }) {
   const [tab, setTab] = useState("Top");
   const [hover, setHover] = useState(false);
   const [open, setOpen] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const fileInputRef = React.useRef(null);
   const [selected, setSelected] = useState({
     Top: null,
     Bottom: null,
     Shoes: null,
   });
+  
+  // Check if any item is uploading
+  const anyUploading = uploadingStates && (uploadingStates.top || uploadingStates.bottom || uploadingStates.shoes);
 
   // ----- Dummy gallery (replace with your own URLs later) -----
   const fallbackGallery = useDummyGallery();
@@ -66,7 +68,6 @@ export default function ChooseOutfitStep({ onTabChange, onDropItem, onImageUploa
     if (!file || !onImageUpload) return;
 
     try {
-      setUploading(true);
       const reader = new FileReader();
       
       reader.onload = async () => {
@@ -89,7 +90,6 @@ export default function ChooseOutfitStep({ onTabChange, onDropItem, onImageUploa
       console.error('Error handling file:', err);
       alert('Failed to process image');
     } finally {
-      setUploading(false);
       // Reset the file input so selecting the same file again will fire change
       try {
         if (fileInputRef?.current) fileInputRef.current.value = '';
@@ -101,6 +101,19 @@ export default function ChooseOutfitStep({ onTabChange, onDropItem, onImageUploa
 
   return (
     <div className="rounded-[22px] bg-white p-4 md:p-5 shadow-sm ring-1 ring-[#cfe0f2]/70">
+      {/* Loading Bar - shown when uploading */}
+      {anyUploading && (
+        <div className="mb-4 w-full bg-blue-100 rounded-full h-2.5 overflow-hidden">
+          <div 
+            className="h-full bg-blue-600 transition-all duration-300 ease-in-out"
+            style={{ 
+              width: '100%',
+              animation: 'progress 1.5s ease-in-out infinite'
+            }}
+          ></div>
+        </div>
+      )}
+      
       {/* Header */}
       <div className="mb-4 flex items-center gap-3">
         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#12396F] text-[25px] font-bold text-white">
@@ -170,29 +183,24 @@ export default function ChooseOutfitStep({ onTabChange, onDropItem, onImageUploa
           type="button"
           onClick={() => fileInputRef.current?.click()}
           className={`flex h-[260px] md:h-[280px] w-full flex-col items-center justify-center rounded-[18px] border-2 border-dashed text-center transition
-          ${hover ? "border-[#3B82F6] bg-[#EAF2FF]" : "border-[#cfe0f2] bg-white/60"}
-          ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+          ${hover ? "border-[#3B82F6] bg-[#EAF2FF]" : "border-[#cfe0f2] bg-white/60"}`}
           onDragOver={onDragOver}
           onDragLeave={onDragLeave}
           onDrop={onDrop}
         >
-          {uploading ? (
-            <>
-              <div className="animate-spin rounded-full h-24 w-24 border-b-4 border-blue-900"></div>
-              <p className="mt-4 text-xl kantumruy text-blue-900">Uploading {tab}...</p>
-            </>
-          ) : selected[tab] ? (
+          {selected[tab] ? (
             <>
               <img 
                 src={selected[tab].src} 
                 alt={selected[tab].name}
                 className="h-48 w-auto object-contain"
               />
-              <p className="mt-2 text-lg kantumruy text-blue-900">{selected[tab].name}</p>
             </>
           ) : (
             <>
-              <SelectIcon className="h-[200px] w-[150px] text-[#12396F]" />
+              <svg className="h-24 w-24 text-[#12396F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
               <p className="mt-2 w-full text-2xl px-4 kantumruy text-blue-900/50">
                 Click to upload {tab.toLowerCase()} image
               </p>
@@ -207,7 +215,7 @@ export default function ChooseOutfitStep({ onTabChange, onDropItem, onImageUploa
           onChange={(e) => handleFileUpload(e.target.files)}
         />
         
-        {selected[tab] && !uploading && (
+        {selected[tab] && (
           <button
             onClick={(e) => {
               e.stopPropagation();

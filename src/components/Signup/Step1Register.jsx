@@ -32,6 +32,22 @@ const Step1Register = ({ register, errors, watch, nextStep, prevStep, isFirstSte
             )}
           </div>
 
+          {/* Middle Name (mobile-only) */}
+          <div className="block md:hidden">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              M Name:
+            </label>
+            <input
+              {...register('middleName')}
+              type="text"
+              className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              placeholder="Enter your middle name"
+            />
+            {errors.middleName && (
+              <p className="text-red-500 text-sm mt-1">{errors.middleName.message}</p>
+            )}
+          </div>
+
           {/* Last Name Field */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -56,11 +72,12 @@ const Step1Register = ({ register, errors, watch, nextStep, prevStep, isFirstSte
             <input
               {...register('password', { 
                 required: 'Password is required',
-                minLength: { value: 6, message: 'Password must be at least 6 characters' }
+                minLength: { value: 8, message: 'Password must be at least 8 characters long' },
+                pattern: { value: /[A-Za-z]/, message: 'Password must contain at least one letter' }
               })}
               type="password"
               className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-              placeholder="Enter your password"
+              placeholder="Enter your password (min 8 chars, include a letter)"
             />
             {errors.password && (
               <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
@@ -155,8 +172,8 @@ const Step1Register = ({ register, errors, watch, nextStep, prevStep, isFirstSte
 
         {/* Right Column */}
         <div className="space-y-6">
-          {/* Middle Name Field */}
-          <div>
+          {/* Middle Name Field (desktop-only) */}
+          <div className="hidden md:block">
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               M Name:
             </label>

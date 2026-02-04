@@ -24,36 +24,56 @@ const WardrobeGrid = ({ selectedItems, onItemSelect, activeTab, wardrobeItems, o
     if (activeTab === "top") return item.type === "top";
     if (activeTab === "bottom") return item.type === "bottom";
     if (activeTab === "shoes") return item.type === "shoes";
-    return true;
+    if (activeTab === "outfit") return item.type === "outfit";
+    return true; // 'all' tab shows everything
   });
+  
+  // Check if we need to show placeholder plus icons for empty categories
+  const shouldShowPlaceholders = activeTab !== "all" && activeTab !== "outfit" && filteredItems.length === 0;
+  
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
-      {filteredItems.map((item) => (
+      {filteredItems.map((item) => {
+        // In 'all' tab, only allow selection if item type matches selectable categories
+        const isSelectableInAllTab = activeTab === "all" && item.type !== "outfit";
+        const canSelect = activeTab !== "all" || isSelectableInAllTab;
+        
+        return (
           <ClothingCard
-          key={item.id}
-          id={item.id}
-          image={item.image_url}
-          category={item.category}
-          favorite={item.favourite}
-          featured={false} // You can add a featured field to API if needed
-          isSelected={selectedItems.includes(item.id)}
-          onSelect={() => onItemSelect(item.id)}
-          onToggleFavorite={onToggleFavorite}
-          onDelete={onDelete}
-          onEdit={onEdit}
-        />
-      ))}
+            key={item.id}
+            id={item.id}
+            image={item.image_url}
+            category={item.category}
+            favorite={item.favourite}
+            featured={false}
+            isSelected={selectedItems.includes(item.id)}
+            onSelect={canSelect ? () => onItemSelect(item.id) : undefined}
+            onToggleFavorite={onToggleFavorite}
+            onDelete={onDelete}
+            onEdit={onEdit}
+          />
+        );
+      })}
       
-      {/* Add New Item Cards */}
-      {[...Array(1)].map((_, index) => (
+      {/* Show plus icon placeholder when category is empty */}
+      {shouldShowPlaceholders && (
         <button
-          key={`add-${index}`}
+          className="aspect-square h-full w-43 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary hover:bg-accent transition-colors flex items-center justify-center"
+          onClick={handleAddNewCloth}
+        >
+          <Plus className="w-12 h-12 text-gray-400" />
+        </button>
+      )}
+      
+      {/* Add New Item Card - always show one */}
+      {filteredItems.length > 0 && (
+        <button
           className="aspect-square h-full w-43 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary hover:bg-accent transition-colors flex items-center justify-center"
           onClick={handleAddNewCloth}
         >
           <Plus className="w-8 h-8 text-gray-400" />
         </button>
-      ))}
+      )}
     </div>
   );
 };

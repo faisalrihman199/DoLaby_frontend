@@ -9,7 +9,8 @@ import {
   MdSettings,
   MdPeople,
   MdMenu,
-  MdClose
+  MdClose,
+  MdImage
 } from 'react-icons/md';
 import { MdLogout } from 'react-icons/md';
 import { useAPP } from '../../contexts/AppContext';
@@ -25,6 +26,7 @@ const AdminSidebar = () => {
     { name: 'Manage Orders', path: '/admin/orders', icon: MdShoppingCart },
     { name: 'Manage Events', path: '/admin/events', icon: MdEvent },
     { name: 'Manage Category', path: '/admin/categories', icon: MdCategory },
+    { name: 'Hero Section', path: '/admin/hero-section', icon: MdImage },
     { name: 'Settings', path: '/admin/settings', icon: MdSettings },
   ];
 
@@ -64,12 +66,12 @@ const AdminSidebar = () => {
       `}>
         {/* Logo */}
         <div className="p-6 border-b border-gray-100 flex-shrink-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-0">
             <h1 className="text-2xl font-bold text-color-primary" style={{ fontFamily: 'Kaushan Script' }}>
-              Dolaby
+              Meraity.ai
             </h1>
-            <div className="h-8 w-8">
-              <img src="/Images/logo.png" alt="Dolaby Logo" className="w-full h-full object-contain" />
+            <div className="h-8 w-8 -ml-1">
+              <img src="/Images/logo.png" alt="Meraity.ai Logo" className="w-full h-full object-contain" />
             </div>
           </div>
         </div>

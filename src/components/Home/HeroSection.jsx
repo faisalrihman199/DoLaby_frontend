@@ -4,17 +4,18 @@ import { EffectCoverflow, Keyboard } from 'swiper/modules';
 import Weather from './Weather';
 import WearTryOn from './WaerTryOn';
 import { IoMdHeartEmpty } from 'react-icons/io';
+import { useAPI } from '../../contexts/ApiContext';
 
 import 'swiper/css';
 import 'swiper/css/effect-coverflow';
 
-// Import look images
+// Import look images as fallback
 import look1Image from '../../assets/Home/HeroSection/look_1/look.png';
 import look2Image from '../../assets/Home/HeroSection/look_2/look.png';
 import look3Image from '../../assets/Home/HeroSection/look_3/look.png';
 import look4Image from '../../assets/Home/HeroSection/look_4/look.png';
 
-// Import individual clothing items for each look
+// Import individual clothing items for each look as fallback
 import look1Top from '../../assets/Home/HeroSection/look_1/top.png';
 import look1Bottom from '../../assets/Home/HeroSection/look_1/bottom.png';
 import look1Shoes from '../../assets/Home/HeroSection/look_1/shoes.png';
@@ -32,19 +33,80 @@ import look4Bottom from '../../assets/Home/HeroSection/look_4/bottom.png';
 import look4Shoes from '../../assets/Home/HeroSection/look_4/shoes.png';
 
 export default function HeroSection() {
-  const initialLooks = [
+  const api = useAPI();
+  
+  // Fallback looks (used if API fails)
+  const fallbackLooks = [
     { id: 1, image: look1Image, title: 'Look 18', folder: 'look_1', items: { top: look1Top, bottom: look1Bottom, shoes: look1Shoes } },
     { id: 2, image: look2Image, title: 'Look 19', folder: 'look_2', items: { top: look2Top, bottom: look2Bottom, shoes: look2Shoes } },
     { id: 3, image: look3Image, title: 'Look 20', folder: 'look_3', items: { top: look3Top, bottom: look3Bottom, shoes: look3Shoes } },
     { id: 4, image: look4Image, title: 'Look 21', folder: 'look_4', items: { top: look4Top, bottom: look4Bottom, shoes: look4Shoes } },
   ];
 
-  const [activeIndex, setActiveIndex] = useState(initialLooks.length - 1);
+  const [looks, setLooks] = useState(fallbackLooks);
+  const [loading, setLoading] = useState(true);
+  const [activeIndex, setActiveIndex] = useState(fallbackLooks.length - 1);
   const [cardAnimDir, setCardAnimDir] = useState(null);
   const [vw, setVw] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280);
   const [isHovered, setIsHovered] = useState(false);
   const swiperRef = useRef(null);
   const autoAdvanceRef = useRef(null);
+
+  // Fetch hero items from API
+  useEffect(() => {
+    const fetchHeroItems = async () => {
+      try {
+        const response = await api.get('/hero-items');
+        const data = response?.data || response;
+        
+        let items = [];
+        if (data.success && Array.isArray(data.data)) {
+          items = data.data;
+        } else if (Array.isArray(data)) {
+          items = data;
+        }
+
+        if (items.length > 0) {
+          // Helper function to get full image URL
+          const getImageUrl = (imagePath) => {
+            if (!imagePath) return '';
+            
+            // If it's already a full URL (Cloudinary), return as is
+            if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+              return imagePath;
+            }
+            
+            // For relative paths (legacy/fallback), prepend backend URL
+            const apiUrl = import.meta.env.VITE_APP_API_URL || 'http://localhost:3000';
+            const backendUrl = apiUrl.replace(/\/api$/, '');
+            return `${backendUrl}${imagePath}`;
+          };
+
+          // Transform API data to match component format
+          const transformedLooks = items.map(item => ({
+            id: item.id,
+            image: getImageUrl(item.look_image),
+            title: item.title,
+            folder: item.folder_name,
+            items: {
+              top: getImageUrl(item.top_image),
+              bottom: getImageUrl(item.bottom_image),
+              shoes: getImageUrl(item.shoes_image)
+            }
+          }));
+          setLooks(transformedLooks);
+          setActiveIndex(transformedLooks.length - 1);
+        }
+      } catch (error) {
+        console.error('Error fetching hero items, using fallback:', error);
+        // Keep fallback looks on error
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHeroItems();
+  }, []);
 
   // ------- sizing presets (unchanged) -------
   function getSizing(width) {
@@ -66,12 +128,12 @@ export default function HeroSection() {
 
   // Auto-advance effect
   useEffect(() => {
-    if (!isHovered && swiperRef.current) {
+    if (!isHovered && swiperRef.current && looks.length > 0) {
       autoAdvanceRef.current = setInterval(() => {
         if (swiperRef.current?.swiper) {
           const swiper = swiperRef.current.swiper;
           // If we're at the last slide, go to first, otherwise go to next
-          if (swiper.activeIndex === initialLooks.length - 1) {
+          if (swiper.activeIndex === looks.length - 1) {
             swiper.slideTo(0);
           } else {
             swiper.slideNext();
@@ -90,14 +152,14 @@ export default function HeroSection() {
         clearInterval(autoAdvanceRef.current);
       }
     };
-  }, [isHovered]);
+  }, [isHovered, looks]);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
 
   const handleSlideChange = (swiper) => {
     const prevIndex = activeIndex;
     const newIndex = swiper.activeIndex;
-    const n = initialLooks.length;
+    const n = looks.length;
     const stepsLeft = (newIndex - prevIndex + n) % n;
     const stepsRight = (prevIndex - newIndex + n) % n;
     setCardAnimDir(stepsLeft <= stepsRight ? 'down' : 'up');
@@ -105,7 +167,7 @@ export default function HeroSection() {
     setTimeout(() => setCardAnimDir(null), TRANSITION_TIME);
   };
 
-  const activeFolder = initialLooks[activeIndex]?.folder;
+  const activeFolder = looks[activeIndex]?.folder;
 
   // ---------- layout ----------
   return (
@@ -147,7 +209,7 @@ export default function HeroSection() {
                 grabCursor
                 centeredSlides
                 slidesPerView="auto"
-                initialSlide={initialLooks.length - 3}
+                initialSlide={looks.length - 3}
                 coverflowEffect={{
                   rotate: 0,
                   stretch: -NEIGHBOR_OVERLAP,
@@ -161,8 +223,8 @@ export default function HeroSection() {
                 onSlideChange={handleSlideChange}
                 style={{ overflow: 'hidden', width: '100%' }}
               >
-                {initialLooks.map((look, idx) => {
-                  const n = initialLooks.length;
+                {looks.map((look, idx) => {
+                  const n = looks.length;
                   const relPos = (idx - activeIndex + n) % n;
                   return (
                     <SwiperSlide key={look.id} style={{ width: 'auto' }}>
@@ -197,7 +259,7 @@ export default function HeroSection() {
 
           {/* RIGHT: Formal Look panel (col-span-12 on tablet, 3 on desktop) */}
           {activeFolder && (() => {
-            const activeLook = initialLooks.find(look => look.folder === activeFolder);
+            const activeLook = looks.find(look => look.folder === activeFolder);
             if (!activeLook || !activeLook.items) return null;
             
             const parts = [
@@ -263,7 +325,7 @@ export default function HeroSection() {
         {/* Mobile parts row */}
         <div className="md:hidden mt-6 flex justify-center">
           {activeFolder && (() => {
-            const activeLook = initialLooks.find(look => look.folder === activeFolder);
+            const activeLook = looks.find(look => look.folder === activeFolder);
             if (!activeLook || !activeLook.items) return null;
             
             const parts = [

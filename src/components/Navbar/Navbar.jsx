@@ -16,14 +16,15 @@ export default function Navbar() {
   return (
     <>
       {/* Desktop */}
-      <nav className="hidden md:flex items-center justify-between py-4">
-        <div className="flex items-center gap-1">
-          <h1 className="text-2xl font-cursive text-color-primary font-bold" style={{ fontFamily: 'Kaushan Script' }}>
-            Dolaby
+      <nav className="hidden md:flex bg-white mx-[-22px] mb-10 px-[22px] items-center justify-between py-1">
+        <div className="flex items-center gap-0">
+          <Link to="/">
+
+          <h1 className="text-[37px] h-[100%] w-64 font-cursive text-color-primary font-bold" style={{ fontFamily: 'Kaushan Script' }}>
+            <img src='/logo.png' />
           </h1>
-          <div className="h-10 w-10">
-            <img src="/Images/logo.png" alt="Dolaby Logo" />
-          </div>
+          </Link>
+         
         </div>
 
         <div className="flex items-center space-x-8">
@@ -70,14 +71,13 @@ export default function Navbar() {
       </nav>
 
       {/* Mobile */}
-      <nav className="md:hidden flex items-center justify-between py-4">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-cursive text-color-primary font-bold" style={{ fontFamily: 'Kaushan Script' }}>
-            Dolaby
+      <nav className="md:hidden bg-white mx-[-22px] px-[22px] flex items-center justify-between py-4">
+        <div className="flex items-center gap-1">
+          <Link to="/">
+          <h1 className="text-2xl font-cursive h-[100%] w-36 text-color-primary font-bold" style={{ fontFamily: 'Kaushan Script' }}>
+            <img src='/logo.png' />
           </h1>
-          <div className="h-10 w-10">
-            <img src="/Images/logo.png" alt="Dolaby Logo" />
-          </div>
+          </Link>
         </div>
 
         <button
@@ -94,15 +94,13 @@ export default function Navbar() {
       {/* Mobile sidebar */}
       {isMobileMenuOpen && (
         <div className="md:hidden fixed inset-0 z-999 bg-black/20" onClick={() => setIsMobileMenuOpen(false)}>
-          <div className="fixed top-0 right-0 h-full w-80 bg-blue-100 shadow-lg" onClick={(e) => e.stopPropagation()}>
+          <div className="fixed top-0 right-0 h-full w-80 bg-[#F4F8FB] shadow-lg" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-6 border-b border-[#035477]">
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-cursive text-color-primary font-bold" style={{ fontFamily: 'Kaushan Script' }}>
-                  Dolaby
+                <div className="flex items-center gap-1">
+                <h1 className="text-2xl h-[100%] w-36 font-cursive text-color-primary font-bold" style={{ fontFamily: 'Kaushan Script' }}>
+                 <img src='/logo.png' />
                 </h1>
-                <div className="h-10 w-10">
-                  <img src="/Images/logo.png" alt="Dolaby Logo" />
-                </div>
+               
               </div>
               <button onClick={() => setIsMobileMenuOpen(false)} aria-label="Close menu">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

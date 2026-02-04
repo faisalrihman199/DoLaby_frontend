@@ -22,7 +22,7 @@ const Wardrobe = () => {
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [personImageUrl, setPersonImageUrl] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"top" | "bottom" | "shoes" | "outfit">("top");
+  const [activeTab, setActiveTab] = useState<"top" | "bottom" | "shoes" | "outfit" | "all">("top");
   const [wardrobeItems, setWardrobeItems] = useState<WardrobeItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +30,8 @@ const Wardrobe = () => {
   const [tryOnLoading, setTryOnLoading] = useState(false);
   const [tryOnError, setTryOnError] = useState<string | null>(null);
   const [tryOnResult, setTryOnResult] = useState<any>(null);
+  const [progress, setProgress] = useState(0);
+  const [progressMessage, setProgressMessage] = useState('');
   const [uploading, setUploading] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; itemId: number | null; itemName: string }>({
     isOpen: false,
@@ -212,6 +214,142 @@ const Wardrobe = () => {
     }
   };
 
+  // Poll job status with smooth progress simulation
+  const pollJobStatus = (taskId: string, pollInterval = 2000): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      const maxAttempts = 150; // 5 minutes max (150 * 2s)
+      let attempts = 0;
+      let simulatedProgress = 10;
+      let simulationInterval: NodeJS.Timeout | null = null;
+      let lastBackendProgress = 0;
+
+      // Simulate smooth progress during AI processing (when stuck at 20%)
+      const startProgressSimulation = () => {
+        if (simulationInterval) return;
+        
+        simulationInterval = setInterval(() => {
+          // Only simulate if backend is stuck at 20% (AI processing)
+          if (lastBackendProgress >= 20 && lastBackendProgress < 70) {
+            // Slowly increment from current progress towards 65% (leave room for real updates)
+            if (simulatedProgress < 65) {
+              // Random increment between 1-3% every 800ms for natural feel
+              const increment = Math.random() * 2 + 1;
+              simulatedProgress = Math.min(65, simulatedProgress + increment);
+              setProgress(Math.round(simulatedProgress));
+              
+              // Update message based on simulated progress
+              if (simulatedProgress < 30) {
+                setProgressMessage('Analyzing your photo...');
+              } else if (simulatedProgress < 40) {
+                setProgressMessage('Matching outfit style...');
+              } else if (simulatedProgress < 50) {
+                setProgressMessage('Adjusting fit and proportions...');
+              } else if (simulatedProgress < 60) {
+                setProgressMessage('Applying finishing touches...');
+              } else {
+                setProgressMessage('Almost ready...');
+              }
+            }
+          }
+        }, 800);
+      };
+
+      const stopProgressSimulation = () => {
+        if (simulationInterval) {
+          clearInterval(simulationInterval);
+          simulationInterval = null;
+        }
+      };
+
+      const poll = async () => {
+        attempts++;
+        
+        try {
+          // api.get returns response.data directly (not full axios response)
+          const status = await api.get(`/image/job-status/${taskId}`);
+
+          console.log(`Job ${taskId} status:`, status.status, `${status.progress || 0}%`, status.message);
+
+          const backendProgress = status.progress || 0;
+          lastBackendProgress = backendProgress;
+
+          // If backend progress jumps ahead of simulation, use backend value
+          if (backendProgress > simulatedProgress) {
+            simulatedProgress = backendProgress;
+            setProgress(backendProgress);
+          }
+
+          // Start simulation when AI processing begins (stuck at 20%)
+          if (backendProgress >= 20 && backendProgress < 70) {
+            startProgressSimulation();
+          }
+
+          // Update message from backend if it changes
+          if (status.message && backendProgress >= 70) {
+            setProgressMessage(status.message);
+            setTryOnError(null);
+          }
+
+          if (status.status === 'completed') {
+            // Job completed successfully
+            stopProgressSimulation();
+            setProgress(100);
+            setProgressMessage('Done! ✨');
+            
+            // Small delay to show 100% before displaying result
+            setTimeout(() => {
+              setTryOnResult({
+                url: status.result.url,
+                tryOnCount: null,
+                cached: false,
+                isRegistered: true,
+                processingTime: status.result.processingTime
+              });
+              setUploadedImage(status.result.url);
+              setTryOnLoading(false);
+              console.log('Try-on completed successfully');
+              resolve(status.result);
+            }, 500);
+            return;
+          }
+
+          if (status.status === 'failed') {
+            // Job failed
+            stopProgressSimulation();
+            const errorMsg = status.error || status.message || 'Processing failed';
+            setTryOnError(errorMsg);
+            setTryOnLoading(false);
+            console.error('Try-on failed:', errorMsg);
+            reject(new Error(errorMsg));
+            return;
+          }
+
+          // Job still processing, continue polling
+          if (attempts < maxAttempts) {
+            setTimeout(poll, pollInterval);
+          } else {
+            stopProgressSimulation();
+            const timeoutMsg = 'Processing timeout. Please try again.';
+            setTryOnError(timeoutMsg);
+            setTryOnLoading(false);
+            reject(new Error(timeoutMsg));
+          }
+
+        } catch (err) {
+          stopProgressSimulation();
+          console.error('Error polling job status:', err);
+          const errorMsg = 'Failed to check processing status';
+          setTryOnError(errorMsg);
+          setTryOnLoading(false);
+          reject(err);
+        }
+      };
+
+      // Start polling
+      poll();
+    });
+  };
+
   // Perform try-on with selected wardrobe items
   const performTryOn = async (overridePersonUrl?: string) => {
     const personUrlToUse = overridePersonUrl || personImageUrl;
@@ -232,6 +370,8 @@ const Wardrobe = () => {
     try {
       setTryOnLoading(true);
       setTryOnError(null);
+      setProgress(0);
+      setProgressMessage('Initializing...');
 
       const requestBody: any = {
         personUrl: personUrlToUse,
@@ -248,20 +388,61 @@ const Wardrobe = () => {
       const response = await api.post('/image/try-on', requestBody);
       console.log('Try-on response:', response);
 
-      const result = response?.data?.data || response?.data;
-      setTryOnResult({
-        url: result.url,
-        tryOnCount: result.tryOnCount,
-        cached: result.cached || response?.data?.cached,
-        isRegistered: result.isRegistered
-      });
-      setUploadedImage(result.url);
+      // The API context returns response.data directly, not the full axios response
+      // Check if this is an async job (has taskId and status 'queued')
+      if (response.taskId && response.status === 'queued') {
+        const { taskId, pollInterval = 2000 } = response;
+        console.log('Async job created:', taskId);
+        
+        // Poll for job status
+        await pollJobStatus(taskId, pollInterval);
+        return;
+      }
+
+      // Immediate response (cached result)
+      if (response.cached && response.data?.url) {
+        const { data } = response;
+        console.log('Cached result:', data);
+        
+        setTryOnResult({
+          url: data.url,
+          tryOnCount: data.tryOnCount,
+          cached: true,
+          isRegistered: data.isRegistered,
+          cacheUseCount: data.cacheUseCount
+        });
+        setUploadedImage(data.url);
+        setTryOnLoading(false);
+        setProgress(100);
+        setProgressMessage('Completed (from cache)!');
+        return;
+      }
+
+      // Legacy direct response format
+      const result = response?.data?.data || response?.data || response;
+      if (result?.url) {
+        setTryOnResult({
+          url: result.url,
+          tryOnCount: result.tryOnCount,
+          cached: result.cached || response?.cached,
+          isRegistered: result.isRegistered
+        });
+        setUploadedImage(result.url);
+        setTryOnLoading(false);
+        setProgress(100);
+        return;
+      }
+
+      // Unexpected response
+      console.warn('Unexpected response format:', response);
+      setTryOnError('Unexpected response from server');
+      setTryOnLoading(false);
 
     } catch (err: any) {
+      console.error('Error performing try-on:', err);
       const errorMsg = err?.response?.data?.message || err?.message || 'Failed to perform try-on. Please try again.';
       showError(errorMsg);
       setTryOnError(errorMsg);
-    } finally {
       setTryOnLoading(false);
     }
   };
@@ -459,7 +640,7 @@ const Wardrobe = () => {
   const getFilteredItems = () => {
     return wardrobeItems.filter(item => {
       // Filter by active tab
-      if (item.type !== activeTab) return false;
+      if (activeTab !== "all" && item.type !== activeTab) return false;
       
       // Apply filters
       if (filters.category && item.category !== filters.category) return false;
@@ -487,6 +668,7 @@ const Wardrobe = () => {
             onAISuggest={handleAISuggest}
             canTryOn={!!(personImageUrl || (user && user.measurement_image)) && !tryOnLoading && !uploading}
             tryOnLoading={tryOnLoading}
+            uploading={uploading}
           />
           <UploadSection 
             onImageUpload={handleImageUpload} 
@@ -497,14 +679,18 @@ const Wardrobe = () => {
             tryOnLoading={tryOnLoading}
             tryOnError={tryOnError}
             tryOnResult={tryOnResult}
-            onSave={handleSaveTryOnResult}
+            onSave={user ? handleSaveTryOnResult : undefined}
             saving={saving}
+            progress={progress}
+            progressMessage={progressMessage}
             onTryAgain={() => {
               setTryOnResult(null);
               setTryOnError(null);
               setUploadedImage(null);
               setPersonImageUrl(null);
               setSelectedItems([]);
+              setProgress(0);
+              setProgressMessage('');
             }}
           />
         </div>
@@ -566,6 +752,16 @@ const Wardrobe = () => {
               }`}
             >
               Outfits
+            </button>
+            <button 
+              onClick={() => setActiveTab("all")}
+              className={`px-6 py-2 rounded-t-lg font-medium transition-colors ${
+                activeTab === "all" 
+                  ? activeTabStyles 
+                  : inactiveTabStyles
+              }`}
+            >
+              All
             </button>
           </div>
 

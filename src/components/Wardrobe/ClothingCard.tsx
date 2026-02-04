@@ -5,7 +5,7 @@ interface ClothingCardProps {
   image: string;
   category: string;
   isSelected: boolean;
-  onSelect: () => void;
+  onSelect?: () => void;
   favorite?: boolean;
   featured?: boolean;
   onToggleFavorite?: (id: number) => void;
@@ -27,23 +27,25 @@ const ClothingCard = ({
 }: ClothingCardProps) => {
   return (
     <div
-      className={`relative overflow-hidden transition-all cursor-pointer ${isSelected
+      className={`relative overflow-hidden transition-all ${onSelect ? 'cursor-pointer' : 'cursor-default'} ${isSelected
         ? "ring-1 rounded ring-[hsl(var(--wardrobe-selected))] shadow-sm"
-        : "hover:shadow-md"
+        : onSelect ? "hover:shadow-md" : ""
         }`}
       onClick={onSelect}
     >
-      {/* Checkbox */}
-      <div className="absolute top-2 right-2 z-10">
-        <div
-          className={`w-4 h-4 border-1 black flex items-center justify-center ${isSelected
-            ? "border-black"
-            : "border-black"
-            }`}
-        >
-          {isSelected && <Check className="w-3 h-3 text-black" strokeWidth={3} />}
+      {/* Checkbox - only show if selectable */}
+      {onSelect && (
+        <div className="absolute top-2 right-2 z-10">
+          <div
+            className={`w-4 h-4 border-1 black flex items-center justify-center ${isSelected
+              ? "border-black"
+              : "border-black"
+              }`}
+          >
+            {isSelected && <Check className="w-3 h-3 text-black" strokeWidth={3} />}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Image */}
       <div className="aspect-square bg-white/70 rounded-lg p-4 pb-8">

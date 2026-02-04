@@ -163,7 +163,13 @@ export default function UserProfile() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-blue-50 py-12 px-4">
+    <>
+      <Helmet>
+        <title>My Profile | Meraity.ai</title>
+        <meta name="description" content="Manage your profile, preferences, and fashion data securely on Meraity.ai." />
+      </Helmet>
+      
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-blue-50 py-12 px-4">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="bg-white rounded-3xl shadow-xl ring-1 ring-blue-50 p-8">
@@ -383,5 +389,6 @@ export default function UserProfile() {
         </div>
       </div>
     </div>
+    </>
   );
 }

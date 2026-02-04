@@ -8,9 +8,41 @@ interface PreviewSectionProps {
   onTryAgain?: () => void;
   onSave?: (favourite: boolean) => void;
   saving?: boolean;
+  progress?: number;
+  progressMessage?: string;
 }
 
-const PreviewSection = ({ uploadedImage, tryOnLoading = false, tryOnError = null, tryOnResult = null, onTryAgain, onSave, saving = false }: PreviewSectionProps) => {
+const PreviewSection = ({ 
+  uploadedImage, 
+  tryOnLoading = false, 
+  tryOnError = null, 
+  tryOnResult = null, 
+  onTryAgain, 
+  onSave, 
+  saving = false,
+  progress = 0,
+  progressMessage = ''
+}: PreviewSectionProps) => {
+  // AI processing tips to show during wait
+  const aiTips = [
+    "Analyzing your photo...",
+    "Matching outfit colors...",
+    "Adjusting fit and proportions...",
+    "Applying style details...",
+    "Perfecting the look...",
+    "Almost there...",
+  ];
+  
+  // Get a tip based on progress
+  const getTip = () => {
+    if (progress < 15) return aiTips[0];
+    if (progress < 25) return aiTips[1];
+    if (progress < 40) return aiTips[2];
+    if (progress < 55) return aiTips[3];
+    if (progress < 70) return aiTips[4];
+    return aiTips[5];
+  };
+
   return (
     <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-blue-100">
       <div className="mb-3 flex items-center gap-3 justify-center">
@@ -24,9 +56,32 @@ const PreviewSection = ({ uploadedImage, tryOnLoading = false, tryOnError = null
         style={{ aspectRatio: '9 / 16', height: '450px', maxWidth: '280px', margin: '0 auto' }}
       >
         {tryOnLoading ? (
-          <div className="flex h-full flex-col items-center justify-center">
-            <div className="animate-spin rounded-full h-24 w-24 border-b-4 border-blue-900"></div>
-            <p className="mt-4 w-full text-2xl text-center px-4 kantumruy text-blue-900">Creating your try-on...</p>
+          <div className="flex h-full flex-col items-center justify-center px-6">
+            <div className="relative">
+              <div className="animate-spin rounded-full h-24 w-24 border-b-4 border-blue-900"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-2xl">✨</span>
+              </div>
+            </div>
+            <p className="mt-4 w-full text-xl text-center kantumruy text-blue-900 font-medium">
+              {progressMessage || 'Creating your look...'}
+            </p>
+            {progress > 0 && (
+              <div className="mt-5 w-full">
+                <div className="w-full bg-blue-100 rounded-full h-3 overflow-hidden">
+                  <div 
+                    className="bg-gradient-to-r from-blue-600 to-blue-900 h-3 rounded-full transition-all duration-700 ease-out"
+                    style={{ width: `${progress}%` }}
+                  ></div>
+                </div>
+                <p className="mt-2 text-center text-lg font-bold text-blue-900">{progress}%</p>
+              </div>
+            )}
+            {progress >= 10 && progress < 70 && (
+              <p className="mt-3 text-sm text-center text-blue-600 kantumruy animate-pulse">
+                {getTip()}
+              </p>
+            )}
           </div>
         ) : tryOnError ? (
           <div className="flex h-full flex-col items-center justify-center p-4">

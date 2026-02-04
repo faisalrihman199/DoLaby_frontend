@@ -84,12 +84,7 @@ const UploadSection = ({ onImageUpload, uploading = false }: UploadSectionProps)
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        {uploading ? (
-          <div className="flex h-full flex-col items-center justify-center">
-            <div className="animate-spin rounded-full h-24 w-24 border-b-4 border-blue-900"></div>
-            <p className="mt-4 w-full text-2xl text-center px-4 kantumruy text-blue-900">Uploading...</p>
-          </div>
-        ) : preview ? (
+        {preview ? (
           <div className="w-full h-full flex items-center justify-center bg-white p-2">
             <img src={preview} alt="Preview" className="w-full h-full object-contain rounded-lg" />
           </div>

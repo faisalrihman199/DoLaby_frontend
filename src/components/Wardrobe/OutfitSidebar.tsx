@@ -14,29 +14,33 @@ interface OutfitSidebarProps {
   onAISuggest?: () => void;
   canTryOn?: boolean;
   tryOnLoading?: boolean;
+  uploading?: boolean;
 }
 
-const OutfitSidebar = ({ selectedTop, selectedBottom, selectedShoes, onTryOn, onAISuggest, canTryOn, tryOnLoading }: OutfitSidebarProps) => {
+const OutfitSidebar = ({ selectedTop, selectedBottom, selectedShoes, onTryOn, onAISuggest, canTryOn, tryOnLoading, uploading }: OutfitSidebarProps) => {
   const { user } = useAPP();
   // Build outfit items from selected items
   const outfitItems = [
     {
       id: 1,
-      image: selectedTop?.image_url || user?.measurement_image || "https://pngimg.com/uploads/tshirt/tshirt_PNG5439.png",
+      image: selectedTop?.image_url || null,
       label: "Top",
       name: selectedTop?.name || "Select a top",
+      isEmpty: !selectedTop,
     },
     {
       id: 2,
-      image: selectedBottom?.image_url || user?.measurement_image || defaultBottomImage,
+      image: selectedBottom?.image_url || null,
       label: "Bottom",
       name: selectedBottom?.name || "Select bottoms",
+      isEmpty: !selectedBottom,
     },
     {
       id: 3,
-      image: selectedShoes?.image_url || "https://down-yuantu.pngtree.com/shetu/element/40134/5093.png?e=1760912609&st=MzE2ZmU1ZTY3OTk5Y2U4OGFiMjY2ZTdmN2IzZDdmMGI&n=%E2%80%94Pngtree%E2%80%94black+sneakers_5649575.png",
+      image: selectedShoes?.image_url || null,
       label: "Shoes",
       name: selectedShoes?.name || "Select shoes",
+      isEmpty: !selectedShoes,
     },
   ];
 
@@ -51,6 +55,19 @@ const OutfitSidebar = ({ selectedTop, selectedBottom, selectedShoes, onTryOn, on
         />
       </div>
       <div className="bg-accent w-full md:w-[70%] rounded-lg border-1 border-color-primary p-4 h-fit">
+        {/* Loading Bar - shown when uploading */}
+        {uploading && (
+          <div className="mb-4 w-full bg-blue-100 rounded-full h-2.5 overflow-hidden">
+            <div 
+              className="h-full bg-blue-600 transition-all duration-300 ease-in-out"
+              style={{ 
+                width: '100%',
+                animation: 'progress 1.5s ease-in-out infinite'
+              }}
+            ></div>
+          </div>
+        )}
+        
         {/* Title like your reference */}
         <div className="text-[20px] md:text-[25px] tracking-tight text-sky-800 mb-2 font-kanit">
           Formal Look
@@ -69,16 +86,24 @@ const OutfitSidebar = ({ selectedTop, selectedBottom, selectedShoes, onTryOn, on
               </button> */}
 
               <div className="flex items-start justify-between gap-4">
-                <img
-                  src={item.image}
-                  alt={item.label}
-                  className="object-contain self-start  h-20 mb-1 select-none"
-                  style={{ background: "none", border: "none", boxShadow: "none", outline: "none" }}
-                  draggable={false}
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                  }}
-                />
+                {item.isEmpty ? (
+                  <div className="flex items-center justify-center h-20 w-20">
+                    <svg className="h-12 w-12 text-sky-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                  </div>
+                ) : (
+                  <img
+                    src={item.image || ''}
+                    alt={item.label}
+                    className="object-contain self-start  h-20 mb-1 select-none"
+                    style={{ background: "none", border: "none", boxShadow: "none", outline: "none" }}
+                    draggable={false}
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                )}
                 {/* Try-on icon on third card (shoes) when person image is uploaded */}
                 {index === 2 && canTryOn && (
                   <button

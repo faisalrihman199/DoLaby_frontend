@@ -32,6 +32,7 @@ const Signup = () => {
     getValues,
     reset
   } = useForm({
+    mode: 'onChange',
     defaultValues: {
       // Step 1 - Personal Information
       firstName: urlName ? urlName.split(' ')[0] || '' : '',
@@ -74,6 +75,7 @@ const Signup = () => {
       newsletter: false
     }
   })
+
 
   // Load saved progress from localStorage
   useEffect(() => {
@@ -537,7 +539,9 @@ const Signup = () => {
               }
               if (maybeTokens.refreshToken) localStorage.setItem('refreshToken', maybeTokens.refreshToken)
               localStorage.setItem('accessToken', maybeTokens.accessToken)
-            } catch (err) { console.error(err) }
+            } catch (err) { 
+              setStep1Error(err?.response?.data?.errors?.[0] || err.message || 'An error occurred during login after registration.')
+              console.error(err) }
           }
         } catch (err) {
           console.error('Could not parse register response', err)

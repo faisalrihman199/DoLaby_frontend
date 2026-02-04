@@ -14,7 +14,7 @@ export default function WearTryOn({ onStartTryOn }) {
                 fontWeight: 700,
                 color: '#00397B',
                 WebkitTextStroke: "0.2px white",
-                textShadow: '0px 4px 4px rgba(0,0,0,0.25)',
+                
             }}
         >
             <div>

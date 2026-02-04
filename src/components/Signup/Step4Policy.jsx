@@ -19,13 +19,13 @@ const Step6Policy = ({ register, errors, watch, nextStep, prevStep, isFirstStep,
           <div className="prose max-w-none">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Terms of Service</h3>
             <p className="mb-4">
-              Welcome to Dolaby! By using our service, you agree to be bound by these Terms of Service. 
+              Welcome to Meraity.ai! By using our service, you agree to be bound by these Terms of Service. 
               Please read them carefully before using our platform.
             </p>
             
             <h4 className="text-md font-semibold text-gray-800 mb-2">1. User Responsibilities</h4>
             <p className="mb-4">
-              As a user of Dolaby, you are responsible for maintaining the confidentiality of your account 
+              As a user of Meraity.ai, you are responsible for maintaining the confidentiality of your account 
               and password. You agree to accept responsibility for all activities that occur under your account.
             </p>
             
@@ -49,7 +49,7 @@ const Step6Policy = ({ register, errors, watch, nextStep, prevStep, isFirstStep,
             
             <h4 className="text-md font-semibold text-gray-800 mb-2">5. Limitation of Liability</h4>
             <p className="mb-4">
-              Dolaby shall not be liable for any indirect, incidental, special, or consequential damages 
+              Meraity.ai shall not be liable for any indirect, incidental, special, or consequential damages 
               resulting from the use or inability to use our service.
             </p>
           </div>

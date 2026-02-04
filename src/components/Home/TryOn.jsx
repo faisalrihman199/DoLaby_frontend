@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import FingerprintJS from '@fingerprintjs/fingerprintjs';
 import { useAPI } from '../../contexts/ApiContext';
+import { useAPP } from '../../contexts/AppContext';
 import ChooseOutfitStep from "./ChooseOutfitStep";
 import { CameraIcon, SparklesIcon } from "./icons/Icons";
 
@@ -75,7 +76,27 @@ function UploadPhotoStep({ photo, onChange, onFileSelected, uploading }) {
 }
 
 /* Step 3: preview */
-function PreviewResultStep({ resultUrl, tryOnLoading, tryOnError, tryOnData, onSave, saving }) {
+function PreviewResultStep({ resultUrl, tryOnLoading, tryOnError, tryOnData, onSave, saving, progress, progressMessage }) {
+  // AI processing tips to show during wait
+  const aiTips = [
+    "Analyzing your photo...",
+    "Matching outfit colors...",
+    "Adjusting fit and proportions...",
+    "Applying style details...",
+    "Perfecting the look...",
+    "Almost there...",
+  ];
+  
+  // Get a tip based on progress
+  const getTip = () => {
+    if (progress < 15) return aiTips[0];
+    if (progress < 25) return aiTips[1];
+    if (progress < 40) return aiTips[2];
+    if (progress < 55) return aiTips[3];
+    if (progress < 70) return aiTips[4];
+    return aiTips[5];
+  };
+
   return (
     <div className="rounded-3xl bg-white p-4 ">
      <div className="mb-3 flex items-center gap-3 justify-center">
@@ -90,11 +111,32 @@ function PreviewResultStep({ resultUrl, tryOnLoading, tryOnError, tryOnData, onS
         style={{ aspectRatio: '9 / 16', height: '450px', maxWidth: '280px', margin: '0 auto' }}
       >
         {tryOnLoading ? (
-          <div className="flex h-full flex-col items-center justify-center">
-            <div className="animate-spin rounded-full h-24 w-24 border-b-4 border-blue-900"></div>
-            <p className="mt-4 w-full text-2xl text-center px-4 kantumruy text-blue-900">
-              Creating your try-on...
+          <div className="flex h-full flex-col items-center justify-center px-6">
+            <div className="relative">
+              <div className="animate-spin rounded-full h-24 w-24 border-b-4 border-blue-900"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-2xl">✨</span>
+              </div>
+            </div>
+            <p className="mt-4 w-full text-xl text-center kantumruy text-blue-900 font-medium">
+              {progressMessage || 'Creating your look...'}
             </p>
+            {progress > 0 && (
+              <div className="mt-5 w-full">
+                <div className="w-full bg-blue-100 rounded-full h-3 overflow-hidden">
+                  <div 
+                    className="bg-gradient-to-r from-blue-600 to-blue-900 h-3 rounded-full transition-all duration-700 ease-out"
+                    style={{ width: `${progress}%` }}
+                  ></div>
+                </div>
+                <p className="mt-2 text-center text-lg font-bold text-blue-900">{progress}%</p>
+              </div>
+            )}
+            {progress >= 10 && progress < 70 && (
+              <p className="mt-3 text-sm text-center text-blue-600 kantumruy animate-pulse">
+                {getTip()}
+              </p>
+            )}
           </div>
         ) : tryOnError ? (
           <div className="flex h-full flex-col items-center justify-center p-4">
@@ -220,6 +262,7 @@ function PreviewResultStep({ resultUrl, tryOnLoading, tryOnError, tryOnData, onS
 
 export default function TryOn() {
   const api = useAPI();
+  const { user } = useAPP();
   const [selected, setSelected] = useState({ Top: null, Bottom: null, Shoes: null });
   const [photo, setPhoto] = useState(null);
   const [deviceFingerprint, setDeviceFingerprint] = useState(null);
@@ -229,12 +272,19 @@ export default function TryOn() {
     bottomUrl: null,
     shoesUrl: null
   });
-  const [uploading, setUploading] = useState(false);
+  const [uploadingStates, setUploadingStates] = useState({
+    top: false,
+    bottom: false,
+    shoes: false,
+    person: false
+  });
   const [tryOnLoading, setTryOnLoading] = useState(false);
   const [tryOnError, setTryOnError] = useState(null);
   const [resultUrl, setResultUrl] = useState(null);
   const [tryOnData, setTryOnData] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [progressMessage, setProgressMessage] = useState('');
 
   // Initialize device fingerprint
   useEffect(() => {
@@ -269,7 +319,7 @@ export default function TryOn() {
   // Upload image to server
   const uploadImage = async (file, type) => {
     try {
-      setUploading(true);
+      setUploadingStates(prev => ({ ...prev, [type]: true }));
       const formData = new FormData();
       formData.append('image', file);
       const fp = await ensureFingerprint();
@@ -364,7 +414,7 @@ export default function TryOn() {
       alert('Failed to upload image. Please try again.');
       return null;
     } finally {
-      setUploading(false);
+      setUploadingStates(prev => ({ ...prev, [type]: false }));
     }
   };
 
@@ -420,6 +470,8 @@ export default function TryOn() {
     try {
       setTryOnLoading(true);
       setTryOnError(null);
+      setProgress(0);
+      setProgressMessage('Initializing...');
 
       const requestBody = {
         personUrl: uploadedUrls.personUrl,
@@ -437,21 +489,183 @@ export default function TryOn() {
 
       console.log('Try-on response:', response);
 
-      const result = response?.data?.data || response?.data;
-      setResultUrl(result.url);
-      setTryOnData({
-        tryOnCount: result.tryOnCount,
-        cached: result.cached || response?.data?.cached,
-        isRegistered: result.isRegistered
-      });
+      // The API context returns response.data directly, not the full axios response
+      // So 'response' here IS the data object
+      
+      // Check if this is an async job (has taskId and status 'queued')
+      if (response.taskId && response.status === 'queued') {
+        const { taskId, pollInterval = 2000 } = response;
+        console.log('Async job created:', taskId);
+        
+        // Poll for job status
+        await pollJobStatus(taskId, pollInterval);
+        return;
+      }
+
+      // Immediate response (cached result)
+      if (response.cached && response.data?.url) {
+        const { data } = response;
+        console.log('Cached result:', data);
+        
+        setResultUrl(data.url);
+        setTryOnData({
+          tryOnCount: data.tryOnCount,
+          cached: true,
+          isRegistered: data.isRegistered,
+          cacheUseCount: data.cacheUseCount
+        });
+        setTryOnLoading(false);
+        setProgress(100);
+        setProgressMessage('Completed (from cache)!');
+        return;
+      }
+
+      // Unexpected response
+      console.warn('Unexpected response format:', response);
+      setTryOnError('Unexpected response from server');
+      setTryOnLoading(false);
 
     } catch (err) {
       console.error('Error performing try-on:', err);
       const errorMsg = err?.response?.data?.message || err?.message || 'Failed to perform try-on. Please try again.';
       setTryOnError(errorMsg);
-    } finally {
       setTryOnLoading(false);
     }
+  };
+
+  // Poll job status with smooth progress simulation
+  const pollJobStatus = (taskId, pollInterval = 2000) => {
+    return new Promise((resolve, reject) => {
+      const maxAttempts = 150; // 5 minutes max (150 * 2s)
+      let attempts = 0;
+      let simulatedProgress = 10;
+      let simulationInterval = null;
+      let lastBackendProgress = 0;
+
+      // Simulate smooth progress during AI processing (when stuck at 20%)
+      const startProgressSimulation = () => {
+        if (simulationInterval) return;
+        
+        simulationInterval = setInterval(() => {
+          // Only simulate if backend is stuck at 20% (AI processing)
+          if (lastBackendProgress >= 20 && lastBackendProgress < 70) {
+            // Slowly increment from current progress towards 65% (leave room for real updates)
+            if (simulatedProgress < 65) {
+              // Random increment between 1-3% every 800ms for natural feel
+              const increment = Math.random() * 2 + 1;
+              simulatedProgress = Math.min(65, simulatedProgress + increment);
+              setProgress(Math.round(simulatedProgress));
+              
+              // Update message based on simulated progress
+              if (simulatedProgress < 30) {
+                setProgressMessage('Analyzing your photo...');
+              } else if (simulatedProgress < 40) {
+                setProgressMessage('Matching outfit style...');
+              } else if (simulatedProgress < 50) {
+                setProgressMessage('Adjusting fit and proportions...');
+              } else if (simulatedProgress < 60) {
+                setProgressMessage('Applying finishing touches...');
+              } else {
+                setProgressMessage('Almost ready...');
+              }
+            }
+          }
+        }, 800);
+      };
+
+      const stopProgressSimulation = () => {
+        if (simulationInterval) {
+          clearInterval(simulationInterval);
+          simulationInterval = null;
+        }
+      };
+
+      const poll = async () => {
+        attempts++;
+        
+        try {
+          // api.get returns response.data directly (not full axios response)
+          const status = await api.get(`/image/job-status/${taskId}`);
+
+          console.log(`Job ${taskId} status:`, status.status, `${status.progress || 0}%`, status.message);
+
+          const backendProgress = status.progress || 0;
+          lastBackendProgress = backendProgress;
+
+          // If backend progress jumps ahead of simulation, use backend value
+          if (backendProgress > simulatedProgress) {
+            simulatedProgress = backendProgress;
+            setProgress(backendProgress);
+          }
+
+          // Start simulation when AI processing begins (stuck at 20%)
+          if (backendProgress >= 20 && backendProgress < 70) {
+            startProgressSimulation();
+          }
+
+          // Update message from backend if it changes
+          if (status.message && backendProgress >= 70) {
+            setProgressMessage(status.message);
+            setTryOnError(null);
+          }
+
+          if (status.status === 'completed') {
+            // Job completed successfully
+            stopProgressSimulation();
+            setProgress(100);
+            setProgressMessage('Done! ✨');
+            
+            // Small delay to show 100% before displaying result
+            setTimeout(() => {
+              setResultUrl(status.result.url);
+              setTryOnData({
+                tryOnCount: null,
+                cached: false,
+                isRegistered: true,
+                processingTime: status.result.processingTime
+              });
+              setTryOnLoading(false);
+              console.log('Try-on completed successfully');
+              resolve(status.result);
+            }, 500);
+            return;
+          }
+
+          if (status.status === 'failed') {
+            // Job failed
+            stopProgressSimulation();
+            const errorMsg = status.error || status.message || 'Processing failed';
+            setTryOnError(errorMsg);
+            setTryOnLoading(false);
+            console.error('Try-on failed:', errorMsg);
+            reject(new Error(errorMsg));
+            return;
+          }
+
+          // Job still processing, continue polling
+          if (attempts < maxAttempts) {
+            setTimeout(poll, pollInterval);
+          } else {
+            stopProgressSimulation();
+            const timeoutMsg = 'Processing timeout. Please try again.';
+            setTryOnError(timeoutMsg);
+            setTryOnLoading(false);
+            reject(new Error(timeoutMsg));
+          }
+
+        } catch (err) {
+          stopProgressSimulation();
+          console.error('Error polling job status:', err);
+          const errorMsg = 'Failed to check processing status';
+          setTryOnError(errorMsg);
+          setTryOnLoading(false);
+          reject(err);
+        }
+      };
+
+      // Start polling
+      poll();
+    });
   };
 
   // Auto-trigger try-on when all required data is available
@@ -507,19 +721,20 @@ export default function TryOn() {
   };
 
   return (
-    <div id="try-on" className="mx-auto max-w-7xl px-4 md:px-6 py-4 flex flex-col justify-center min-h-[80vh]">
+    <div id="try-on" className="mx-auto max-w-7xl px-4 md:px-6 py-4 md:py-6 -mt-8 md:-mt-12 flex flex-col justify-center">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <ChooseOutfitStep
           onTabChange={() => { }}
           onDropItem={handleOutfitSelection}
           onImageUpload={uploadImage}
           onTryOn={performTryOn}
+          uploadingStates={uploadingStates}
         />
         <UploadPhotoStep 
           photo={photo} 
           onChange={handleRemovePhoto} 
           onFileSelected={handlePersonPhotoSelected}
-          uploading={uploading}
+          uploading={uploadingStates.person}
         />
         <PreviewResultStep 
           resultUrl={resultUrl} 
@@ -528,6 +743,8 @@ export default function TryOn() {
           tryOnData={tryOnData}
           onSave={handleSaveTryOnResult}
           saving={saving}
+          progress={progress}
+          progressMessage={progressMessage}
         />
       </div>
     </div>
