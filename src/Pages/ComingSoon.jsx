@@ -10,7 +10,7 @@ const ComingSoon = () => {
         <div className="w-full max-w-2xl text-center">
           {/* Icon */}
           <div className="mb-8 flex justify-center">
-            <div className="relative">
+            <div className="relative">a
               <div className="absolute inset-0 bg-blue-400 rounded-full blur-2xl opacity-30"></div>
               <IoSparklesOutline className="w-24 h-24 text-blue-600 relative" />
             </div>

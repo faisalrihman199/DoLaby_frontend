@@ -1,17 +1,24 @@
 import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAPI } from '../../contexts/ApiContext';
 
-// Posts a visitor record to /visitors once per browser (persists fingerprint)
+// Tracks:
+// 1) Unique visitor (backend)
+// 2) Page views (Google Tag Manager / GA4)
 export default function VisitorTracker() {
   const api = useAPI();
+  const location = useLocation();
 
+  /* =========================
+     1️⃣ Backend Visitor Tracking
+     ========================= */
   useEffect(() => {
     let mounted = true;
 
     const alreadyTracked = () => {
       try {
         return !!localStorage.getItem('visitor_tracked');
-      } catch (e) {
+      } catch {
         return false;
       }
     };
@@ -20,15 +27,13 @@ export default function VisitorTracker() {
       try {
         if (fingerprint) localStorage.setItem('visitor_fingerprint', fingerprint);
         localStorage.setItem('visitor_tracked', '1');
-      } catch (e) { /* ignore */ }
+      } catch {}
     };
 
-    const track = async () => {
-      if (!mounted) return;
-      if (alreadyTracked()) return;
+    const trackVisitor = async () => {
+      if (!mounted || alreadyTracked()) return;
 
       try {
-        // Dynamically import to avoid loading fingerprint library in initial bundle
         const FingerprintJS = await import('@fingerprintjs/fingerprintjs');
         const fp = await FingerprintJS.load();
         const result = await fp.get();
@@ -36,31 +41,40 @@ export default function VisitorTracker() {
         if (!visitorId) return;
 
         const metadata = {
-          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
-          url: typeof window !== 'undefined' ? window.location.href : null,
-          referrer: typeof document !== 'undefined' ? document.referrer : null,
+          userAgent: navigator?.userAgent ?? null,
+          url: window?.location?.href ?? null,
+          referrer: document?.referrer ?? null,
           ts: new Date().toISOString()
         };
 
-        // Post to /visitors with required fingerprint
         try {
           await api.post('/visitors', { fingerprint: visitorId, metadata });
           markTracked(visitorId);
-          console.debug('Visitor tracked:', visitorId);
-        } catch (err) {
-          console.warn('Failed to post visitor:', err);
-          // still mark so we don't spam the API repeatedly
+        } catch {
           markTracked(visitorId);
         }
       } catch (err) {
-        console.warn('VisitorTracker: could not generate fingerprint', err);
+        console.warn('VisitorTracker fingerprint error', err);
       }
     };
 
-    track();
-
+    trackVisitor();
     return () => { mounted = false; };
   }, [api]);
+
+  /* =========================
+     2️⃣ Google Analytics Page Views
+     ========================= */
+  useEffect(() => {
+    if (!window.dataLayer) return;
+
+    window.dataLayer.push({
+      event: 'page_view',
+      page_path: location.pathname,
+      page_title: document.title,
+      page_location: window.location.href
+    });
+  }, [location]);
 
   return null;
 }

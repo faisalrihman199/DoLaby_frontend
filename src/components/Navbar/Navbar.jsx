@@ -20,8 +20,8 @@ export default function Navbar() {
         <div className="flex items-center gap-0">
           <Link to="/">
 
-          <h1 className="text-[37px] h-[100%] w-64 font-cursive text-color-primary font-bold" style={{ fontFamily: 'Kaushan Script' }}>
-            <img src='/logo.png' />
+          <h1 className="text-[37px] h-[100%]  w-64 font-cursive text-color-primary font-bold" style={{ fontFamily: 'Kaushan Script' }}>
+            <img className="h-[65px]" src='/logo.png' />
           </h1>
           </Link>
          
@@ -75,7 +75,7 @@ export default function Navbar() {
         <div className="flex items-center gap-1">
           <Link to="/">
           <h1 className="text-2xl font-cursive h-[100%] w-36 text-color-primary font-bold" style={{ fontFamily: 'Kaushan Script' }}>
-            <img src='/logo.png' />
+            <img className="h-[55px]"  src='/logo.png' />
           </h1>
           </Link>
         </div>
@@ -98,7 +98,7 @@ export default function Navbar() {
             <div className="flex items-center justify-between p-6 border-b border-[#035477]">
                 <div className="flex items-center gap-1">
                 <h1 className="text-2xl h-[100%] w-36 font-cursive text-color-primary font-bold" style={{ fontFamily: 'Kaushan Script' }}>
-                 <img src='/logo.png' />
+                 <img className="h-[55px]" src='/logo.png' />
                 </h1>
                
               </div>

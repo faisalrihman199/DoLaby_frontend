@@ -114,10 +114,26 @@ const Wardrobe = () => {
   }, [api]);
 
   const handleItemSelect = (id: number) => {
-    setSelectedItems(prev => 
-      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
-    );
-  };
+  const clickedItem = wardrobeItems.find(item => item.id === id);
+  if (!clickedItem) return;
+
+  setSelectedItems(prev => {
+    // If clicking already-selected item → deselect it
+    if (prev.includes(id)) {
+      return prev.filter(itemId => itemId !== id);
+    }
+
+    // Remove any previously selected item of the SAME TYPE
+    const filtered = prev.filter(itemId => {
+      const item = wardrobeItems.find(w => w.id === itemId);
+      return item?.type !== clickedItem.type;
+    });
+
+    // Add the new selection
+    return [...filtered, id];
+  });
+};
+
 
   const handleImageUpload = async (file: File) => {
     try {
